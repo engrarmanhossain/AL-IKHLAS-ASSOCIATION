@@ -1,107 +1,60 @@
 # AL-IKHLAS ASSOCIATION (আল-ইখলাস অ্যাসোসিয়েশন)
 ## Real-Time Financial &amp; Contribution Intelligence Dashboard
 
-A modern, responsive, real-time executive dashboard built for **AL-IKHLAS ASSOCIATION**. Connected securely to your private Google Spreadsheet via Google Apps Script Web App API with token authentication.
+A modern, responsive, real-time executive dashboard built for **AL-IKHLAS ASSOCIATION**. Connected directly to your private Google Spreadsheet via Google Apps Script Web App API with secure token authentication, Multi-Role Access Control, and Extra Deposit Tracking.
 
 ---
 
-### 🌟 Key Features
+### 🌟 Key New Features
 
-1. **⚡ Real-Time Live Sync Engine**:
-   - Fetches live updates directly from your Google Sheet endpoint.
-   - Live status indicator: `🟢 Live Synced` with last sync timestamp.
-   - Configurable auto-refresh (15s, 30s, 1m, 5m, or Paused).
-   - Instant "Refresh" button.
-   - Offline &amp; instant-load cache using `localStorage`.
+1. **💰 Extra Deposit Separation**:
+   - Accurately detects and separates **Regular Share Capital** (৳ 2,000 / Share) from **Extra Deposits** (Surplus Savings).
+   - **Regular Share Capital**: ৳ 2,90,000 across 145 active association shares (121 records).
+   - **Extra Deposits**: ৳ 34,000 (18 records across all 10 members).
+   - **Grand Total**: ৳ 3,24,000.
+   - Dedicated filter: View *All Deposits*, *Regular Shares Only*, or *Extra Deposits Only*.
+   - Stacked monthly growth and member ranking charts comparing regular capital vs extra deposits.
 
-2. **📊 Executive KPI Metrics**:
-   - **Total Funds Collected**: Aggregate total in Bangladeshi Taka (৳ BDT) with Received vs Pending breakdown.
-   - **Total Active Shares**: Real-time count of total member shares (৳ 2,000 / Share).
-   - **Registered Members**: Total active participating members.
-   - **Deposit Transactions**: Total recorded payment slips.
-   - **Collection Performance Rate**: Percentage of verified received payments.
+2. **🔐 Role-Based Access Control &amp; Authentication**:
+   - **Default Admin Account**:
+     - **Email / Login**: `armanhossain.eee.info@gmail.com`
+     - **Password**: `arman2026**`
+     - **Role**: **President (Executive Super Admin)**
+   - Pre-configured Association Roles:
+     - **President** (Arman Hossain) — Super admin with full authority over users, roles, and financials.
+     - **Accountant** (Faisal Mahmud) — Financial admin with approval authority and ledger management.
+     - **Secretary** (Zafrul Monir) — Records and administrative management.
+     - **Cashier** (Ikhtiar Uddin) — Payment verification and receipt issuance.
+     - **General Members** — Secure statement viewing, filtered transactions, and receipt printing.
 
-3. **📈 Visual Analytics &amp; Charts (Chart.js)**:
-   - **Monthly Collection &amp; Growth Trend**: Bar chart of received vs pending contributions per month, alongside a cumulative fund progression line.
-   - **Share Ratio by Member**: Interactive doughnut chart showing percentage ownership of association shares.
-   - **Total Contribution Ranking**: Horizontal bar chart comparing cumulative contributions by member.
-   - **Deposit Instruments &amp; Methods**: Breakdown of Deposit Slip Books vs Bank/Digital Transfers.
+3. **✅ Payment Approval &amp; Pending Management**:
+   - **Pending Approvals Queue**: Dedicated queue in the Admin tab for 1-click approvals.
+   - **Interactive Ledger Approvals**: Presidents and Accountants can approve pending payments or toggle status directly from the main transaction table.
+   - **Record New Deposits**: Admins can record incoming share capital or extra deposits directly into the system.
 
-4. **👥 Member Directory &amp; Statements**:
-   - Member profile cards with individual totals, shares, deposit count, and payment status badges.
-   - One-click **WhatsApp Direct Chat** and **Phone Dialer**.
-   - **Official Member Statement &amp; Receipt Modal**:
-     - View complete deposit history for any member.
-     - Formatted for print/PDF with official association letterhead, signature lines for President, Cashier, and Member.
+4. **👥 User &amp; Role Management Portal**:
+   - Add new members with assigned roles.
+   - Change existing user roles (e.g. promote member to Accountant or President).
+   - Remove/deactivate accounts.
+   - Persistent role and user storage.
 
-5. **📋 Interactive Transaction Ledger**:
-   - Search across Member Name, Phone Number, Member ID, TRX ID, and Date.
-   - Filter by specific Member, Month Period, or Status (Received / Pending).
-   - Clickable column sorting (Date, Name, Amount, Shares, Status).
-   - Pagination controls (15, 25, 50, 100, or All records per page).
-   - One-click copy for Transaction Reference / Slip numbers.
-   - **Export to Excel (.xlsx / .csv)** powered by SheetJS.
-   - **Official Print / PDF Report**: Clean print styling hiding navigation buttons for meetings.
-
-6. **🎨 Customization &amp; Design**:
-   - Emerald Green &amp; Gold palette honoring Islamic aesthetic tradition.
-   - Dark Mode / Light Mode toggle with persistence.
-   - Fully responsive for mobile phones, tablets, laptops, and smart TVs.
+5. **⚡ Real-Time Live Sync**:
+   - Auto-refreshes every 30 seconds directly from your Google Apps Script endpoint.
+   - Instant 0ms cached loading via `localStorage`.
 
 ---
 
-### 🚀 How to Run the Dashboard
+### 🚀 How to Run Locally
 
-#### Method 1: Double-Click Launcher (Easiest)
-Simply double-click the included file:
+Double-click:
 ```
 Start-Dashboard.bat
 ```
-This automatically starts the local server and opens the dashboard in your default browser at `http://localhost:8080`.
-
-#### Method 2: Direct Browser Open
-Double-click `index.html` to open it directly in Google Chrome, Microsoft Edge, or Firefox.
-
-#### Method 3: Python Server (Command Line)
-```bash
-python server.py
-```
+Or open [index.html](file:///c:/Users/arman/Downloads/AL-IKHLAS%20ASSOCIATION/index.html) in your browser.
 
 ---
 
-### 🌐 How to Host Online for Free (For All Members to Access)
+### 🌐 Live GitHub Repository &amp; Pages
 
-Because the dashboard is built with pure client-side web technologies and talks securely to your Google Apps Script endpoint, you can host it 100% free on:
-
-#### Option A: GitHub Pages
-1. Push this folder to a GitHub repository.
-2. In your repo, go to **Settings > Pages**.
-3. Under "Branch", select `main` and `/ (root)`, then click **Save**.
-4. Your dashboard will be live at `https://your-username.github.io/your-repo-name/`.
-
-#### Option B: Netlify or Vercel
-1. Drag and drop the folder into [Netlify Drop](https://app.netlify.com/drop).
-2. Get an instant live HTTPS link in under 10 seconds!
-
----
-
-### ⚙️ Google Apps Script Endpoint Configuration
-
-- **Web App URL**: `https://script.google.com/macros/s/AKfycbz1GPChdZgMZgcpRU2xEGdy3hJs06LgkvX1ITtoOj4JYRwZ4Xl5XM0KpaV9J2Kbuq5X/exec`
-- **Authentication Token**: `AlIkhlasSecure2024!`
-
-To change or update your endpoint or token at any time, click the **"Config"** button in the dashboard top navigation bar.
-
----
-
-### 📁 Project Structure
-
-```
-AL-IKHLAS ASSOCIATION/
-├── index.html            # Main dashboard user interface & modals
-├── app.js                # Real-time data sync, metrics, charts & filters
-├── styles.css            # Custom theme styles, animations & print layout
-├── server.py             # Optional local Python web server
-├── Start-Dashboard.bat   # Windows 1-click launcher
-└── README.md             # Documentation & instructions
-```
+- **GitHub Repository**: [https://github.com/engrarmanhossain/AL-IKHLAS-ASSOCIATION](https://github.com/engrarmanhossain/AL-IKHLAS-ASSOCIATION)
+- **Live Website**: [https://engrarmanhossain.github.io/AL-IKHLAS-ASSOCIATION/](https://engrarmanhossain.github.io/AL-IKHLAS-ASSOCIATION/)

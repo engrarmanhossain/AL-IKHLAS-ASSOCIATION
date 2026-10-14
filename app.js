@@ -1,6 +1,7 @@
 /**
  * AL-IKHLAS ASSOCIATION - Real-Time Dashboard Engine
- * Connects directly to Google Apps Script Web App Endpoint
+ * Multi-Role Access Control (President, Accountant, Member)
+ * Real-Time Google Spreadsheet Bridge & Extra Deposit Separation
  */
 
 // Global Configuration
@@ -9,10 +10,102 @@ const CONFIG = {
   DEFAULT_TOKEN: 'AlIkhlasSecure2024!',
   STORAGE_KEY_SETTINGS: 'al_ikhlas_settings_v1',
   STORAGE_KEY_CACHE: 'al_ikhlas_data_cache_v1',
+  STORAGE_KEY_AUTH: 'al_ikhlas_current_user_v2',
+  STORAGE_KEY_USERS: 'al_ikhlas_users_list_v2',
+  STORAGE_KEY_OVERRIDES: 'al_ikhlas_status_overrides_v2',
+  STORAGE_KEY_NEW_TXS: 'al_ikhlas_custom_txs_v2',
 };
+
+// Initial Default Users & Roles
+const DEFAULT_USERS = [
+  {
+    id: 'u1',
+    name: 'Arman Hossain',
+    email: 'armanhossain.eee.info@gmail.com',
+    password: 'arman2026**',
+    phone: '01724472229',
+    role: 'President', // Super Admin
+  },
+  {
+    id: 'u2',
+    name: 'Faisal mahmud',
+    email: 'faisal@alikhlas.org',
+    password: 'member2026',
+    phone: '01628435701',
+    role: 'Accountant', // Financial Admin
+  },
+  {
+    id: 'u3',
+    name: 'Zafrul monir',
+    email: 'zafrul@alikhlas.org',
+    password: 'member2026',
+    phone: '01846329066',
+    role: 'Secretary',
+  },
+  {
+    id: 'u4',
+    name: 'Ikhtiar Uddin',
+    email: 'ikhtiar@alikhlas.org',
+    password: 'member2026',
+    phone: '01600102219',
+    role: 'Cashier',
+  },
+  {
+    id: 'u5',
+    name: 'Mosheur Rahman',
+    email: 'mosheur@alikhlas.org',
+    password: 'member2026',
+    phone: '01882812309',
+    role: 'Member',
+  },
+  {
+    id: 'u6',
+    name: 'Imam Hossan Masum',
+    email: 'imam@alikhlas.org',
+    password: 'member2026',
+    phone: '01616780307',
+    role: 'Member',
+  },
+  {
+    id: 'u7',
+    name: 'Soleman Hossen',
+    email: 'soleman@alikhlas.org',
+    password: 'member2026',
+    phone: '01864996234',
+    role: 'Member',
+  },
+  {
+    id: 'u8',
+    name: 'Tanvir Hasan',
+    email: 'tanvir@alikhlas.org',
+    password: 'member2026',
+    phone: '01571771318',
+    role: 'Member',
+  },
+  {
+    id: 'u9',
+    name: 'Md Mamun',
+    email: 'mamun@alikhlas.org',
+    password: 'member2026',
+    phone: '01712327821',
+    role: 'Member',
+  },
+  {
+    id: 'u10',
+    name: 'Tarek',
+    email: 'tarek@alikhlas.org',
+    password: 'member2026',
+    phone: '01845834641',
+    role: 'Member',
+  }
+];
 
 // Global State
 let state = {
+  currentUser: null,
+  users: [],
+  statusOverrides: {},
+  customTransactions: [],
   rawRows: [],
   transactions: [],
   membersMap: new Map(),
@@ -20,7 +113,7 @@ let state = {
   charts: {},
   sort: { field: 'depositDate', direction: 'desc' },
   pagination: { page: 1, pageSize: 25 },
-  filters: { search: '', member: '', month: '', status: '' },
+  filters: { search: '', member: '', type: '', month: '', status: '' },
   autoRefreshTimer: null,
   autoRefreshIntervalMs: 30000,
   isFetching: false,
@@ -43,7 +136,7 @@ function formatDate(dateObj) {
   });
 }
 
-// Helper: Get Clean Member Avatar Initials
+// Helper: Member Initials
 function getInitials(name) {
   if (!name) return 'AI';
   const parts = name.trim().split(/\s+/);
@@ -53,7 +146,7 @@ function getInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-// Helper: Generate Deterministic Color from String
+// Helper: String to Color
 function stringToColor(str) {
   const colors = [
     '#059669', '#0d9488', '#0284c7', '#4f46e5',
@@ -94,13 +187,14 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
-// Initialize Application
+// Application Initialization
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  loadSavedSettings();
+  initUsersAndAuth();
+  loadSavedOverrides();
   setupEventListeners();
-  
-  // Try loading cached data for instant render
+
+  // Load cached data for instant startup
   const cached = localStorage.getItem(CONFIG.STORAGE_KEY_CACHE);
   if (cached) {
     try {
@@ -109,96 +203,503 @@ document.addEventListener('DOMContentLoaded', () => {
         processRawData(parsed.data, false);
       }
     } catch (e) {
-      console.warn('Failed parsing cached data:', e);
+      console.warn('Cache error:', e);
     }
   }
 
-  // Fetch live fresh data immediately
+  // Fetch live fresh data from Apps Script
   fetchLiveData();
   setupAutoRefresh();
 });
 
-// Settings Management
-function getSettings() {
-  const saved = localStorage.getItem(CONFIG.STORAGE_KEY_SETTINGS);
-  if (saved) {
+// User & Auth Engine
+function initUsersAndAuth() {
+  // Load users from storage or use defaults
+  const storedUsers = localStorage.getItem(CONFIG.STORAGE_KEY_USERS);
+  if (storedUsers) {
     try {
-      return JSON.parse(saved);
-    } catch (e) {}
+      state.users = JSON.parse(storedUsers);
+    } catch (e) {
+      state.users = [...DEFAULT_USERS];
+    }
+  } else {
+    state.users = [...DEFAULT_USERS];
+    localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   }
-  return {
-    apiUrl: CONFIG.DEFAULT_API_URL,
-    token: CONFIG.DEFAULT_TOKEN,
-  };
+
+  // Check current session
+  const storedAuth = localStorage.getItem(CONFIG.STORAGE_KEY_AUTH);
+  if (storedAuth) {
+    try {
+      state.currentUser = JSON.parse(storedAuth);
+    } catch (e) {
+      state.currentUser = null;
+    }
+  } else {
+    // Default to auto-login as President for seamless administrative convenience
+    state.currentUser = state.users[0]; // Arman Hossain (President)
+    localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
+  }
+
+  renderAuthHeader();
+  renderAdminUsersTable();
 }
 
-function loadSavedSettings() {
-  const s = getSettings();
-  const urlInput = document.getElementById('setting-api-url');
-  const tokenInput = document.getElementById('setting-api-token');
-  if (urlInput) urlInput.value = s.apiUrl || CONFIG.DEFAULT_API_URL;
-  if (tokenInput) tokenInput.value = s.token || CONFIG.DEFAULT_TOKEN;
+function canManageUsers() {
+  if (!state.currentUser) return false;
+  return state.currentUser.role === 'President' || state.currentUser.email === 'armanhossain.eee.info@gmail.com';
 }
 
-function saveSettings() {
-  const url = document.getElementById('setting-api-url').value.trim();
-  const token = document.getElementById('setting-api-token').value.trim();
+function canApprovePayments() {
+  if (!state.currentUser) return false;
+  return ['President', 'Accountant', 'Cashier'].includes(state.currentUser.role);
+}
 
-  if (!url) {
-    alert('Please provide a valid Apps Script URL');
+function renderAuthHeader() {
+  const container = document.getElementById('auth-header-container');
+  const adminBanner = document.getElementById('admin-banner');
+  const adminRoleBadge = document.getElementById('admin-banner-role');
+
+  if (!container) return;
+
+  if (state.currentUser) {
+    const isPresident = state.currentUser.role === 'President';
+    const isAccountant = state.currentUser.role === 'Accountant';
+    const roleColor = isPresident ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 
+                      isAccountant ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 
+                      'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+
+    container.innerHTML = `
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="openLoginModal()" title="Switch Account">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background-color: ${stringToColor(state.currentUser.name)}">
+            ${getInitials(state.currentUser.name)}
+          </div>
+          <div class="hidden sm:block text-left">
+            <div class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none truncate max-w-[120px]">
+              ${state.currentUser.name}
+            </div>
+            <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold ${roleColor}">
+              ${state.currentUser.role}
+            </span>
+          </div>
+        </div>
+        <button onclick="handleLogout()" title="Logout" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+        </button>
+      </div>
+    `;
+
+    if (adminBanner) {
+      if (canApprovePayments()) {
+        adminBanner.classList.remove('hidden');
+        if (adminRoleBadge) adminRoleBadge.textContent = state.currentUser.role;
+      } else {
+        adminBanner.classList.add('hidden');
+      }
+    }
+  } else {
+    container.innerHTML = `
+      <button onclick="openLoginModal()" class="px-3 py-1.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-right-to-bracket text-xs"></i>
+        <span>Sign In</span>
+      </button>
+    `;
+    if (adminBanner) adminBanner.classList.add('hidden');
+  }
+}
+
+function openLoginModal() {
+  document.getElementById('login-error')?.classList.add('hidden');
+  document.getElementById('modal-login')?.classList.remove('hidden');
+  document.getElementById('modal-login')?.classList.add('flex');
+}
+
+function closeLoginModal() {
+  document.getElementById('modal-login')?.classList.add('hidden');
+  document.getElementById('modal-login')?.classList.remove('flex');
+}
+
+function quickFillAdminLogin() {
+  document.getElementById('login-email').value = 'armanhossain.eee.info@gmail.com';
+  document.getElementById('login-password').value = 'arman2026**';
+}
+
+function handleLoginSubmit(e) {
+  e.preventDefault();
+  const emailInput = document.getElementById('login-email').value.trim().toLowerCase();
+  const passInput = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+
+  const user = state.users.find(u => 
+    (u.email.toLowerCase() === emailInput || u.name.toLowerCase() === emailInput) && 
+    u.password === passInput
+  );
+
+  if (user) {
+    state.currentUser = user;
+    localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(user));
+    renderAuthHeader();
+    closeLoginModal();
+    showToast(`Welcome back, ${user.name}! (${user.role})`, 'success');
+    renderTablePage();
+    renderPendingQueue();
+  } else {
+    if (errorEl) {
+      errorEl.textContent = 'Invalid credentials. Please verify your email and password.';
+      errorEl.classList.remove('hidden');
+    }
+  }
+}
+
+function handleLogout() {
+  state.currentUser = null;
+  localStorage.removeItem(CONFIG.STORAGE_KEY_AUTH);
+  renderAuthHeader();
+  renderTablePage();
+  renderPendingQueue();
+  showToast('Logged out successfully.', 'info');
+}
+
+// User & Role Management Table in Admin Tab
+function renderAdminUsersTable() {
+  const tbody = document.getElementById('admin-users-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  state.users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors';
+
+    const isPresident = u.role === 'President';
+    const isAccountant = u.role === 'Accountant';
+    const roleBadge = isPresident ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                      isAccountant ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                      'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+
+    const permissionsText = isPresident ? 'Full Executive Admin' :
+                            isAccountant ? 'Financial & Approval Access' :
+                            u.role === 'Cashier' ? 'Cashier & Deposit Entry' : 'Statement & Directory Viewer';
+
+    tr.innerHTML = `
+      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold" style="background-color: ${stringToColor(u.name)}">
+          ${getInitials(u.name)}
+        </span>
+        <span>${u.name}</span>
+      </td>
+      <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-xs">${u.email}</td>
+      <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-xs">${u.phone || '-'}</td>
+      <td class="py-3 px-4">
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${roleBadge}">
+          ${u.role}
+        </span>
+      </td>
+      <td class="py-3 px-4 text-center text-xs text-slate-500">${permissionsText}</td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-1.5">
+          <button onclick="editUserRole('${u.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 transition">
+            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Role
+          </button>
+          ${!isPresident ? `
+            <button onclick="deleteUser('${u.id}')" class="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 transition" title="Delete User">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          ` : ''}
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openAddUserModal(userId = null) {
+  if (!canManageUsers()) {
+    showToast('Only the President can add or edit users.', 'error');
     return;
   }
 
-  localStorage.setItem(CONFIG.STORAGE_KEY_SETTINGS, JSON.stringify({ apiUrl: url, token }));
-  closeSettingsModal();
-  showToast('Settings saved. Fetching data...', 'info');
-  fetchLiveData();
-}
+  const modal = document.getElementById('modal-user');
+  const title = document.getElementById('modal-user-title');
+  const form = document.getElementById('user-form');
+  form.reset();
 
-function closeSettingsModal() {
-  document.getElementById('modal-settings').classList.add('hidden');
-  document.getElementById('modal-settings').classList.remove('flex');
-}
-
-function openSettingsModal() {
-  loadSavedSettings();
-  document.getElementById('settings-status-box').classList.add('hidden');
-  document.getElementById('modal-settings').classList.remove('hidden');
-  document.getElementById('modal-settings').classList.add('flex');
-}
-
-async function testConnection() {
-  const url = document.getElementById('setting-api-url').value.trim();
-  const token = document.getElementById('setting-api-token').value.trim();
-  const box = document.getElementById('settings-status-box');
-  const btn = document.getElementById('btn-test-conn');
-
-  box.classList.remove('hidden', 'bg-rose-50', 'text-rose-700', 'bg-emerald-50', 'text-emerald-700');
-  box.classList.add('bg-slate-100', 'text-slate-700');
-  box.textContent = 'Testing connection...';
-  btn.disabled = true;
-
-  try {
-    const fullUrl = `${url}?token=${encodeURIComponent(token)}`;
-    const res = await fetch(fullUrl);
-    const json = await res.json();
-
-    if (json.error) {
-      box.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-700 border border-rose-200';
-      box.textContent = 'Authentication Failed: ' + json.error;
-    } else if (json.data && Array.isArray(json.data)) {
-      box.className = 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-700 border border-emerald-200';
-      box.textContent = `Connection Successful! Found ${json.data.length - 1} records.`;
-    } else {
-      box.className = 'p-3 rounded-xl text-xs bg-amber-50 text-amber-700 border border-amber-200';
-      box.textContent = 'Unexpected response structure: ' + JSON.stringify(json).slice(0, 100);
+  if (userId) {
+    const user = state.users.find(u => u.id === userId);
+    if (user) {
+      title.textContent = `Edit Role: ${user.name}`;
+      document.getElementById('form-user-id').value = user.id;
+      document.getElementById('form-user-name').value = user.name;
+      document.getElementById('form-user-email').value = user.email;
+      document.getElementById('form-user-phone').value = user.phone || '';
+      document.getElementById('form-user-role').value = user.role;
+      document.getElementById('form-user-password').value = user.password || '';
     }
-  } catch (err) {
-    box.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-700 border border-rose-200';
-    box.textContent = 'Network Error: ' + err.message;
-  } finally {
-    btn.disabled = false;
+  } else {
+    title.textContent = 'Add New User / Member';
+    document.getElementById('form-user-id').value = '';
   }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeUserModal() {
+  document.getElementById('modal-user').classList.add('hidden');
+  document.getElementById('modal-user').classList.remove('flex');
+}
+
+function editUserRole(userId) {
+  openAddUserModal(userId);
+}
+
+function deleteUser(userId) {
+  if (!canManageUsers()) {
+    showToast('Only the President can remove users.', 'error');
+    return;
+  }
+
+  const user = state.users.find(u => u.id === userId);
+  if (!user) return;
+
+  if (confirm(`Are you sure you want to remove user "${user.name}"?`)) {
+    state.users = state.users.filter(u => u.id !== userId);
+    localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
+    renderAdminUsersTable();
+    showToast(`User ${user.name} removed.`, 'info');
+  }
+}
+
+function handleUserSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('form-user-id').value;
+  const name = document.getElementById('form-user-name').value.trim();
+  const email = document.getElementById('form-user-email').value.trim().toLowerCase();
+  const phone = document.getElementById('form-user-phone').value.trim();
+  const role = document.getElementById('form-user-role').value;
+  const pass = document.getElementById('form-user-password').value.trim() || 'member2026';
+
+  if (id) {
+    // Update existing
+    const u = state.users.find(x => x.id === id);
+    if (u) {
+      u.name = name;
+      u.email = email;
+      u.phone = phone;
+      u.role = role;
+      if (pass) u.password = pass;
+    }
+  } else {
+    // Add new user
+    state.users.push({
+      id: 'u_' + Date.now(),
+      name,
+      email,
+      phone,
+      role,
+      password: pass
+    });
+  }
+
+  localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
+  renderAdminUsersTable();
+  closeUserModal();
+  showToast(`User ${name} updated with role: ${role}!`, 'success');
+}
+
+// Payment Status Overrides & Approval Actions
+function loadSavedOverrides() {
+  try {
+    state.statusOverrides = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_OVERRIDES)) || {};
+    state.customTransactions = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_NEW_TXS)) || [];
+  } catch (e) {
+    state.statusOverrides = {};
+    state.customTransactions = [];
+  }
+}
+
+function saveOverrides() {
+  localStorage.setItem(CONFIG.STORAGE_KEY_OVERRIDES, JSON.stringify(state.statusOverrides));
+  localStorage.setItem(CONFIG.STORAGE_KEY_NEW_TXS, JSON.stringify(state.customTransactions));
+}
+
+function togglePaymentApproval(uniqueId, newStatus) {
+  if (!canApprovePayments()) {
+    showToast('Permission denied. Only President or Accountant can approve payments.', 'error');
+    openLoginModal();
+    return;
+  }
+
+  // Update override
+  state.statusOverrides[uniqueId] = newStatus;
+  saveOverrides();
+
+  // Update transaction object in memory
+  const tx = state.transactions.find(t => t.uniqueId === uniqueId);
+  if (tx) {
+    tx.status = newStatus;
+  }
+
+  // Recalculate KPIs and re-render
+  updateKPIs();
+  renderPendingQueue();
+  applyFiltersAndRenderTable();
+  renderCharts();
+
+  showToast(`Payment marked as "${newStatus}"!`, 'success');
+}
+
+// Pending Approval Queue Table
+function renderPendingQueue() {
+  const tbody = document.getElementById('admin-pending-tbody');
+  const badge = document.getElementById('admin-pending-counter-badge');
+  const adminBadgeNav = document.getElementById('admin-badge-count');
+
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const pendingList = state.transactions.filter(t => t.status === 'Pending');
+
+  if (badge) badge.textContent = `${pendingList.length} Pending Approval`;
+  if (adminBadgeNav) adminBadgeNav.textContent = `${pendingList.length} Pending`;
+
+  if (pendingList.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="py-6 text-center text-emerald-600 font-semibold">
+          <i class="fa-solid fa-circle-check text-xl mb-1 block"></i>
+          All deposits are cleared and approved! No pending payments in the queue.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  pendingList.forEach(tx => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50';
+
+    const isExtra = tx.isExtra;
+    const typeBadge = isExtra ? 
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Extra Deposit</span>' :
+      `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Share (${tx.shares})</span>`;
+
+    tr.innerHTML = `
+      <td class="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">${tx.dateFormatted}</td>
+      <td class="py-2.5 px-3 font-bold text-slate-900 dark:text-white">${tx.name}</td>
+      <td class="py-2.5 px-3 text-center">${typeBadge}</td>
+      <td class="py-2.5 px-3 font-mono text-[11px] text-slate-500">${tx.trxId}</td>
+      <td class="py-2.5 px-3 text-right font-black text-brand-700 dark:text-brand-400">${formatCurrency(tx.amount)}</td>
+      <td class="py-2.5 px-3 text-center">
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+          Pending
+        </span>
+      </td>
+      <td class="py-2.5 px-3 text-center">
+        <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Received')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1 mx-auto">
+          <i class="fa-solid fa-check text-xs"></i> Approve &amp; Mark Received
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Add Transaction Modal Logic
+function openAddTransactionModal() {
+  if (!canApprovePayments()) {
+    showToast('Only President or Accountant can record deposits.', 'error');
+    openLoginModal();
+    return;
+  }
+
+  const select = document.getElementById('form-tx-member');
+  select.innerHTML = '';
+  const sortedNames = Array.from(state.membersMap.keys()).sort();
+  sortedNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  document.getElementById('form-tx-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('form-tx-shares').value = 1;
+  document.getElementById('form-tx-amount').value = 2000;
+  document.getElementById('form-tx-trx').value = 'Deposit Slip Book';
+
+  document.getElementById('modal-add-tx').classList.remove('hidden');
+  document.getElementById('modal-add-tx').classList.add('flex');
+}
+
+function closeAddTransactionModal() {
+  document.getElementById('modal-add-tx').classList.add('hidden');
+  document.getElementById('modal-add-tx').classList.remove('flex');
+}
+
+function handleFormTxTypeChange() {
+  const type = document.getElementById('form-tx-type').value;
+  const sharesContainer = document.getElementById('form-tx-shares-container');
+  const amtInput = document.getElementById('form-tx-amount');
+
+  if (type === 'extra') {
+    sharesContainer.classList.add('opacity-40', 'pointer-events-none');
+    amtInput.value = 1000;
+  } else {
+    sharesContainer.classList.remove('opacity-40', 'pointer-events-none');
+    amtInput.value = parseInt(document.getElementById('form-tx-shares').value || 1, 10) * 2000;
+  }
+}
+
+function updateCalculatedAmount() {
+  const type = document.getElementById('form-tx-type').value;
+  if (type === 'regular') {
+    const sh = parseInt(document.getElementById('form-tx-shares').value || 1, 10);
+    document.getElementById('form-tx-amount').value = sh * 2000;
+  }
+}
+
+function handleAddTxSubmit(e) {
+  e.preventDefault();
+  const dateStr = document.getElementById('form-tx-date').value;
+  const name = document.getElementById('form-tx-member').value;
+  const type = document.getElementById('form-tx-type').value;
+  const shares = type === 'extra' ? 0 : parseInt(document.getElementById('form-tx-shares').value || 1, 10);
+  const amount = parseFloat(document.getElementById('form-tx-amount').value);
+  const status = document.getElementById('form-tx-status').value;
+  const trxId = document.getElementById('form-tx-trx').value.trim();
+
+  const depDate = new Date(dateStr);
+  const monthLabel = depDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+  const newTx = {
+    uniqueId: 'custom_' + Date.now(),
+    depositDate: depDate,
+    dateFormatted: formatDate(depDate),
+    name: name,
+    id: name.split(' ')[0] + '_Custom',
+    phone: state.membersMap.get(name)?.phone || '',
+    amount: amount,
+    shares: shares,
+    isExtra: type === 'extra',
+    trxId: trxId,
+    status: status,
+    monthLabel: monthLabel,
+  };
+
+  state.customTransactions.push(newTx);
+  saveOverrides();
+
+  // Re-process raw data with custom tx included
+  state.transactions.unshift(newTx);
+  updateKPIs();
+  renderPendingQueue();
+  applyFiltersAndRenderTable();
+  renderCharts();
+  renderMembersGrid();
+
+  closeAddTransactionModal();
+  showToast(`Recorded new deposit for ${name} (${formatCurrency(amount)})!`, 'success');
 }
 
 // Fetch Live Data from Google Apps Script
@@ -211,29 +712,19 @@ async function fetchLiveData() {
   if (refreshIcon) refreshIcon.classList.add('fa-spin');
   if (syncStatus) syncStatus.textContent = 'Syncing...';
 
-  const settings = getSettings();
-  const fullUrl = `${settings.apiUrl}?token=${encodeURIComponent(settings.token)}`;
+  const fullUrl = `${CONFIG.DEFAULT_API_URL}?token=${encodeURIComponent(CONFIG.DEFAULT_TOKEN)}`;
 
   try {
     const response = await fetch(fullUrl, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: { 'Accept': 'application/json' }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const result = await response.json();
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    if (!result.data || !Array.isArray(result.data)) {
-      throw new Error('Invalid data payload received');
-    }
+    if (result.error) throw new Error(result.error);
+    if (!result.data || !Array.isArray(result.data)) throw new Error('Invalid data payload');
 
     // Cache to localStorage
     localStorage.setItem(CONFIG.STORAGE_KEY_CACHE, JSON.stringify(result));
@@ -243,7 +734,7 @@ async function fetchLiveData() {
 
     state.lastUpdated = new Date();
     updateSyncTimeBadge();
-    showToast('Data synced in real time!', 'success');
+    showToast('Data live synced directly from spreadsheet!', 'success');
 
   } catch (error) {
     console.error('Fetch error:', error);
@@ -253,7 +744,6 @@ async function fetchLiveData() {
       indicator.classList.remove('bg-emerald-500');
       indicator.classList.add('bg-rose-500');
     }
-    showToast('Sync error: ' + error.message, 'error');
   } finally {
     state.isFetching = false;
     if (refreshIcon) refreshIcon.classList.remove('fa-spin');
@@ -273,13 +763,11 @@ function updateSyncTimeBadge() {
   }
 }
 
-// Setup Auto Refresh Interval
 function setupAutoRefresh() {
   if (state.autoRefreshTimer) {
     clearInterval(state.autoRefreshTimer);
     state.autoRefreshTimer = null;
   }
-
   if (state.autoRefreshIntervalMs > 0) {
     state.autoRefreshTimer = setInterval(() => {
       fetchLiveData();
@@ -287,14 +775,11 @@ function setupAutoRefresh() {
   }
 }
 
-// Data Processing Engine
+// Data Processing Engine (Separating Regular Shares vs Extra Deposits)
 function processRawData(rows, triggerToast = false) {
   if (!rows || rows.length <= 1) return;
 
   state.rawRows = rows;
-  const headers = rows[0];
-
-  // Map header indexes
   const colIndex = {
     timestamp: 0,
     depositDate: 1,
@@ -319,12 +804,21 @@ function processRawData(rows, triggerToast = false) {
     const rawName = (row[colIndex.name] || '').toString().trim();
     if (!rawName) continue;
 
-    // Clean amounts and shares
     const rawAmt = parseFloat(row[colIndex.amount]);
     const amount = isNaN(rawAmt) ? 0 : rawAmt;
 
-    const rawShares = parseFloat(row[colIndex.shares]);
-    const shares = isNaN(rawShares) ? 1 : rawShares;
+    // Detect Extra Deposit: Check Column 7, Column 6, or Column 10
+    const col7Str = (row[colIndex.shares] || '').toString().toLowerCase().trim();
+    const col6Str = (row[colIndex.trxId] || '').toString().toLowerCase().trim();
+    const col10Str = (row[colIndex.month] || '').toString().toLowerCase().trim();
+
+    const isExtra = col7Str.includes('extra') || col6Str.includes('extra') || col10Str.includes('extra');
+
+    let shares = 0;
+    if (!isExtra) {
+      const rawShares = parseFloat(row[colIndex.shares]);
+      shares = isNaN(rawShares) ? 1 : rawShares;
+    }
 
     // Parse Deposit Date
     let depDate = null;
@@ -338,23 +832,29 @@ function processRawData(rows, triggerToast = false) {
       depDate = new Date(row[colIndex.timestamp]);
     }
 
-    // Status
-    const rawStatus = (row[colIndex.status] || 'Received').toString().trim();
-    const status = rawStatus.toLowerCase().includes('pending') ? 'Pending' : 'Received';
+    // Unique Identifier for this row
+    const uniqueId = `row_${i}_${rawName}_${amount}`;
+
+    // Apply Admin status override if any exists
+    let status = (row[colIndex.status] || 'Received').toString().trim();
+    status = status.toLowerCase().includes('pending') ? 'Pending' : 'Received';
+
+    if (state.statusOverrides[uniqueId]) {
+      status = state.statusOverrides[uniqueId];
+    }
 
     // Phone
     const phone = (row[colIndex.phone] || '').toString().trim();
-
-    // TRX ID
     const trxId = (row[colIndex.trxId] || 'Deposit Slip Book').toString().trim();
 
-    // Month display label
+    // Month Label
     let monthLabel = 'Unknown';
     if (depDate && !isNaN(depDate.getTime())) {
       monthLabel = depDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
     }
 
     const tx = {
+      uniqueId: uniqueId,
       rowIndex: i,
       timestamp: row[colIndex.timestamp],
       depositDate: depDate,
@@ -364,6 +864,7 @@ function processRawData(rows, triggerToast = false) {
       phone: phone,
       amount: amount,
       shares: shares,
+      isExtra: isExtra,
       trxId: trxId,
       email: (row[colIndex.email] || '').toString().trim(),
       status: status,
@@ -372,16 +873,20 @@ function processRawData(rows, triggerToast = false) {
 
     parsedTransactions.push(tx);
 
-    // Group by Member
+    // Member Aggregation
     if (!members.has(rawName)) {
       members.set(rawName, {
         name: rawName,
         id: tx.id,
         phone: phone,
         totalAmount: 0,
+        regularAmount: 0,
+        extraAmount: 0,
         receivedAmount: 0,
         pendingAmount: 0,
         totalShares: 0,
+        regularCount: 0,
+        extraCount: 0,
         depositCount: 0,
         transactions: [],
       });
@@ -389,51 +894,82 @@ function processRawData(rows, triggerToast = false) {
 
     const m = members.get(rawName);
     m.totalAmount += amount;
+    if (isExtra) {
+      m.extraAmount += amount;
+      m.extraCount += 1;
+    } else {
+      m.regularAmount += amount;
+      m.totalShares += shares;
+      m.regularCount += 1;
+    }
+
     if (status === 'Received') {
       m.receivedAmount += amount;
     } else {
       m.pendingAmount += amount;
     }
-    m.totalShares += shares;
     m.depositCount += 1;
     if (phone && !m.phone) m.phone = phone;
     m.transactions.push(tx);
   }
 
-  // Sort transactions by date descending by default
+  // Prepend custom transactions added via admin panel
+  state.customTransactions.forEach(ctx => {
+    parsedTransactions.unshift(ctx);
+    if (members.has(ctx.name)) {
+      const m = members.get(ctx.name);
+      m.totalAmount += ctx.amount;
+      if (ctx.isExtra) {
+        m.extraAmount += ctx.amount;
+        m.extraCount++;
+      } else {
+        m.regularAmount += ctx.amount;
+        m.totalShares += ctx.shares;
+        m.regularCount++;
+      }
+      if (ctx.status === 'Received') m.receivedAmount += ctx.amount;
+      else m.pendingAmount += ctx.amount;
+      m.depositCount++;
+      m.transactions.unshift(ctx);
+    }
+  });
+
+  // Sort chronologically descending
   parsedTransactions.sort((a, b) => (b.depositDate || 0) - (a.depositDate || 0));
 
   state.transactions = parsedTransactions;
   state.membersMap = members;
 
-  // Populate Filter Dropdowns
   populateFilterDropdowns();
-
-  // Update KPI Cards
   updateKPIs();
-
-  // Render Charts
   renderCharts();
-
-  // Render Members Directory
   renderMembersGrid();
-
-  // Apply Current Filters & Render Table
+  renderPendingQueue();
   applyFiltersAndRenderTable();
 }
 
-// Update Top KPI Cards
+// KPI Calculation Engine
 function updateKPIs() {
   let totalAmount = 0;
+  let regularAmount = 0;
+  let extraAmount = 0;
   let receivedAmount = 0;
   let pendingAmount = 0;
   let totalShares = 0;
+  let extraCount = 0;
   let receivedCount = 0;
   let pendingCount = 0;
 
   state.transactions.forEach(tx => {
     totalAmount += tx.amount;
-    totalShares += tx.shares;
+    if (tx.isExtra) {
+      extraAmount += tx.amount;
+      extraCount++;
+    } else {
+      regularAmount += tx.amount;
+      totalShares += tx.shares;
+    }
+
     if (tx.status === 'Received') {
       receivedAmount += tx.amount;
       receivedCount++;
@@ -444,42 +980,42 @@ function updateKPIs() {
   });
 
   const memberCount = state.membersMap.size;
-  const avgShares = memberCount > 0 ? (totalShares / memberCount).toFixed(1) : 0;
-  const avgTx = memberCount > 0 ? (state.transactions.length / memberCount).toFixed(0) : 0;
+  const avgMember = memberCount > 0 ? (totalAmount / memberCount) : 0;
   const collectionRate = totalAmount > 0 ? ((receivedAmount / totalAmount) * 100).toFixed(1) : 100;
 
-  // DOM Updates
+  // DOM Elements Update
   document.getElementById('kpi-total-amount').textContent = formatCurrency(totalAmount);
-  document.getElementById('kpi-received-amount').textContent = `Received: ${formatCurrency(receivedAmount)}`;
-  document.getElementById('kpi-pending-amount').textContent = `Pending: ${formatCurrency(pendingAmount)}`;
+  document.getElementById('kpi-received-amount').textContent = formatCurrency(receivedAmount);
+  document.getElementById('kpi-pending-amount').textContent = formatCurrency(pendingAmount);
 
+  document.getElementById('kpi-regular-amount').textContent = formatCurrency(regularAmount);
   document.getElementById('kpi-total-shares').textContent = totalShares;
-  document.getElementById('kpi-avg-shares').textContent = avgShares;
+
+  document.getElementById('kpi-extra-amount').textContent = formatCurrency(extraAmount);
+  document.getElementById('kpi-extra-count').textContent = `${extraCount} tx`;
 
   document.getElementById('kpi-total-members').textContent = memberCount;
-  document.getElementById('kpi-total-transactions').textContent = state.transactions.length;
-  document.getElementById('kpi-avg-tx').textContent = avgTx;
+  document.getElementById('kpi-avg-member').textContent = formatCurrency(avgMember);
 
   document.getElementById('kpi-collection-rate').textContent = `${collectionRate}%`;
-  document.getElementById('kpi-received-count').textContent = `${receivedCount} Received`;
+  document.getElementById('kpi-received-count').textContent = `${receivedCount} Approved`;
   document.getElementById('kpi-pending-count').textContent = `${pendingCount} Pending`;
 
   document.getElementById('ledger-tab-count').textContent = state.transactions.length;
 }
 
-// Populate Member & Month Filter Dropdowns
+// Populate Filters
 function populateFilterDropdowns() {
   const memberSelect = document.getElementById('ledger-filter-member');
   const monthSelect = document.getElementById('ledger-filter-month');
+  if (!memberSelect || !monthSelect) return;
 
-  // Preserve existing selections if any
   const curMember = memberSelect.value;
   const curMonth = monthSelect.value;
 
   // Members
   memberSelect.innerHTML = '<option value="">All Members</option>';
-  const sortedMemberNames = Array.from(state.membersMap.keys()).sort();
-  sortedMemberNames.forEach(name => {
+  Array.from(state.membersMap.keys()).sort().forEach(name => {
     const opt = document.createElement('option');
     opt.value = name;
     opt.textContent = name;
@@ -491,11 +1027,8 @@ function populateFilterDropdowns() {
   monthSelect.innerHTML = '<option value="">All Months</option>';
   const uniqueMonths = new Set();
   state.transactions.forEach(tx => {
-    if (tx.monthLabel && tx.monthLabel !== 'Unknown') {
-      uniqueMonths.add(tx.monthLabel);
-    }
+    if (tx.monthLabel && tx.monthLabel !== 'Unknown') uniqueMonths.add(tx.monthLabel);
   });
-
   Array.from(uniqueMonths).forEach(m => {
     const opt = document.createElement('option');
     opt.value = m;
@@ -511,28 +1044,27 @@ function renderCharts() {
   const textColor = isDark ? '#94a3b8' : '#64748b';
   const gridColor = isDark ? '#334155' : '#f1f5f9';
 
-  // 1. Monthly Collection Trend
+  // 1. Monthly Stacked Bar (Regular Shares vs Extra Deposits)
   const monthlyDataMap = new Map();
   state.transactions.forEach(tx => {
     const m = tx.monthLabel;
     if (m === 'Unknown') return;
     if (!monthlyDataMap.has(m)) {
-      monthlyDataMap.set(m, { received: 0, pending: 0, total: 0 });
+      monthlyDataMap.set(m, { regular: 0, extra: 0, total: 0 });
     }
     const cur = monthlyDataMap.get(m);
-    if (tx.status === 'Received') {
-      cur.received += tx.amount;
+    if (tx.isExtra) {
+      cur.extra += tx.amount;
     } else {
-      cur.pending += tx.amount;
+      cur.regular += tx.amount;
     }
     cur.total += tx.amount;
   });
 
   const months = Array.from(monthlyDataMap.keys());
-  const receivedData = months.map(m => monthlyDataMap.get(m).received);
-  const pendingData = months.map(m => monthlyDataMap.get(m).pending);
+  const regularMonthly = months.map(m => monthlyDataMap.get(m).regular);
+  const extraMonthly = months.map(m => monthlyDataMap.get(m).extra);
 
-  // Calculate Cumulative Line
   let cum = 0;
   const cumulativeData = months.map(m => {
     cum += monthlyDataMap.get(m).total;
@@ -552,7 +1084,6 @@ function renderCharts() {
             label: 'Cumulative Total (৳)',
             data: cumulativeData,
             borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
             borderWidth: 3,
             tension: 0.35,
             fill: false,
@@ -562,18 +1093,18 @@ function renderCharts() {
           },
           {
             type: 'bar',
-            label: 'Received (৳)',
-            data: receivedData,
-            backgroundColor: '#059669',
+            label: 'Regular Share Capital (৳)',
+            data: regularMonthly,
+            backgroundColor: '#047857',
             borderRadius: 6,
             stack: 'combined',
             yAxisID: 'y',
           },
           {
             type: 'bar',
-            label: 'Pending (৳)',
-            data: pendingData,
-            backgroundColor: '#f87171',
+            label: 'Extra Deposits (৳)',
+            data: extraMonthly,
+            backgroundColor: '#8b5cf6',
             borderRadius: 6,
             stack: 'combined',
             yAxisID: 'y',
@@ -623,7 +1154,7 @@ function renderCharts() {
     });
   }
 
-  // 2. Member Shares Pie / Doughnut
+  // 2. Member Shares Pie
   const sortedMembersByShares = Array.from(state.membersMap.values()).sort((a, b) => b.totalShares - a.totalShares);
   const shareLabels = sortedMembersByShares.map(m => m.name);
   const shareCounts = sortedMembersByShares.map(m => m.totalShares);
@@ -649,11 +1180,7 @@ function renderCharts() {
         plugins: {
           legend: {
             position: 'right',
-            labels: {
-              boxWidth: 12,
-              color: textColor,
-              font: { family: 'Plus Jakarta Sans', size: 10 }
-            }
+            labels: { boxWidth: 12, color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } }
           },
           tooltip: {
             callbacks: {
@@ -666,10 +1193,11 @@ function renderCharts() {
     });
   }
 
-  // 3. Member Ranking Horizontal Bar Chart
-  const sortedMembersByAmount = Array.from(state.membersMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
-  const rankingLabels = sortedMembersByAmount.map(m => m.name);
-  const rankingAmounts = sortedMembersByAmount.map(m => m.totalAmount);
+  // 3. Member Ranking Stacked Bar: Regular Capital vs Extra Deposit
+  const sortedMembersByTotal = Array.from(state.membersMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+  const rankLabels = sortedMembersByTotal.map(m => m.name);
+  const rankReg = sortedMembersByTotal.map(m => m.regularAmount);
+  const rankExtra = sortedMembersByTotal.map(m => m.extraAmount);
 
   if (state.charts.ranking) state.charts.ranking.destroy();
   const ctxRanking = document.getElementById('chart-member-ranking')?.getContext('2d');
@@ -677,28 +1205,40 @@ function renderCharts() {
     state.charts.ranking = new Chart(ctxRanking, {
       type: 'bar',
       data: {
-        labels: rankingLabels,
-        datasets: [{
-          label: 'Total Contributed (৳)',
-          data: rankingAmounts,
-          backgroundColor: '#047857',
-          borderRadius: 6,
-        }]
+        labels: rankLabels,
+        datasets: [
+          {
+            label: 'Regular Share Capital (৳)',
+            data: rankReg,
+            backgroundColor: '#047857',
+            borderRadius: 6,
+          },
+          {
+            label: 'Extra Deposit (৳)',
+            data: rankExtra,
+            backgroundColor: '#8b5cf6',
+            borderRadius: 6,
+          }
+        ]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            position: 'top',
+            labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } }
+          },
           tooltip: {
             callbacks: {
-              label: ctx => ` Contribution: ৳ ${ctx.raw.toLocaleString('en-IN')}`
+              label: ctx => ` ${ctx.dataset.label}: ৳ ${ctx.raw.toLocaleString('en-IN')}`
             }
           }
         },
         scales: {
           x: {
+            stacked: true,
             grid: { color: gridColor },
             ticks: {
               color: textColor,
@@ -707,6 +1247,7 @@ function renderCharts() {
             }
           },
           y: {
+            stacked: true,
             grid: { display: false },
             ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } }
           }
@@ -715,22 +1256,19 @@ function renderCharts() {
     });
   }
 
-  // 4. Instruments / Payment Methods Breakdown
+  // 4. Instruments / Payment Channels
   const instrumentMap = new Map();
   state.transactions.forEach(tx => {
     let key = tx.trxId;
     if (key.toLowerCase().includes('slip')) {
       key = 'Deposit Slip Book';
-    } else if (key.length > 10) {
+    } else if (key.length > 10 || key.toLowerCase().includes('bank') || key.toLowerCase().includes('transfer')) {
       key = 'Bank / Online TRX';
     } else {
-      key = 'Cash / Other';
+      key = 'Other / Reference';
     }
     instrumentMap.set(key, (instrumentMap.get(key) || 0) + 1);
   });
-
-  const instLabels = Array.from(instrumentMap.keys());
-  const instCounts = Array.from(instrumentMap.values());
 
   if (state.charts.instruments) state.charts.instruments.destroy();
   const ctxInst = document.getElementById('chart-instruments')?.getContext('2d');
@@ -738,9 +1276,9 @@ function renderCharts() {
     state.charts.instruments = new Chart(ctxInst, {
       type: 'pie',
       data: {
-        labels: instLabels,
+        labels: Array.from(instrumentMap.keys()),
         datasets: [{
-          data: instCounts,
+          data: Array.from(instrumentMap.values()),
           backgroundColor: ['#0d9488', '#3b82f6', '#f59e0b', '#8b5cf6'],
           borderWidth: 2,
           borderColor: isDark ? '#0f172a' : '#ffffff',
@@ -753,11 +1291,6 @@ function renderCharts() {
           legend: {
             position: 'bottom',
             labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 11 } }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.label}: ${ctx.raw} transactions`
-            }
           }
         }
       }
@@ -765,7 +1298,7 @@ function renderCharts() {
   }
 }
 
-// Render Member Cards Grid
+// Render Member Grid Cards
 function renderMembersGrid() {
   const container = document.getElementById('members-grid');
   const searchInput = document.getElementById('member-search-input');
@@ -779,9 +1312,7 @@ function renderMembersGrid() {
     return m.name.toLowerCase().includes(query) || (m.phone && m.phone.includes(query)) || (m.id && m.id.toLowerCase().includes(query));
   });
 
-  // Sort by total amount descending
   membersList.sort((a, b) => b.totalAmount - a.totalAmount);
-
   document.getElementById('member-count-badge').textContent = `Showing ${membersList.length} Members`;
 
   membersList.forEach((m, idx) => {
@@ -791,11 +1322,12 @@ function renderMembersGrid() {
     const avatarBg = stringToColor(m.name);
     const hasPending = m.pendingAmount > 0;
 
-    // Clean phone for whatsapp
     let cleanPhone = m.phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '88' + cleanPhone;
-    }
+    if (cleanPhone.startsWith('0')) cleanPhone = '88' + cleanPhone;
+
+    // Check user role from state.users
+    const assignedUser = state.users.find(u => u.name.toLowerCase() === m.name.toLowerCase());
+    const roleBadge = assignedUser ? assignedUser.role : 'Member';
 
     card.innerHTML = `
       <div>
@@ -805,10 +1337,15 @@ function renderMembersGrid() {
               ${getInitials(m.name)}
             </div>
             <div>
-              <h4 class="font-bold text-base text-slate-900 dark:text-white leading-tight">
-                ${m.name}
-              </h4>
-              <span class="text-xs font-mono text-slate-400 block">${m.id || 'Member #' + (idx + 1)}</span>
+              <div class="flex items-center gap-1.5">
+                <h4 class="font-bold text-base text-slate-900 dark:text-white leading-tight">
+                  ${m.name}
+                </h4>
+              </div>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="text-xs font-mono text-slate-400">${m.id || 'Member #' + (idx + 1)}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">${roleBadge}</span>
+              </div>
             </div>
           </div>
           
@@ -817,28 +1354,29 @@ function renderMembersGrid() {
           </span>
         </div>
 
-        <!-- Member Stats Cards -->
+        <!-- Financial Breakdown Cards: Regular vs Extra -->
         <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-          <div class="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl">
-            <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Deposited</span>
-            <span class="text-sm font-extrabold text-brand-700 dark:text-brand-400">${formatCurrency(m.totalAmount)}</span>
+          <div class="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+            <span class="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-400 block">Regular Capital</span>
+            <span class="text-sm font-extrabold text-emerald-700 dark:text-emerald-300">${formatCurrency(m.regularAmount)}</span>
+            <span class="text-[10px] text-emerald-600 block">${m.totalShares} Shares</span>
           </div>
-          <div class="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl">
-            <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Shares</span>
-            <span class="text-sm font-extrabold text-gold-600 dark:text-gold-400">${m.totalShares} Shares</span>
+          <div class="bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-xl border border-purple-100 dark:border-purple-900/30">
+            <span class="text-[10px] uppercase font-bold text-purple-800 dark:text-purple-400 block">Extra Deposit</span>
+            <span class="text-sm font-extrabold text-purple-700 dark:text-purple-300">${formatCurrency(m.extraAmount)}</span>
+            <span class="text-[10px] text-purple-600 block">${m.extraCount} Deposits</span>
           </div>
         </div>
 
         <div class="flex items-center justify-between text-xs text-slate-500 mt-3 px-1">
-          <span>Deposits: <strong>${m.depositCount} times</strong></span>
-          ${hasPending ? `<span class="text-rose-500 font-semibold">Pending: ${formatCurrency(m.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
+          <span>Grand Total: <strong class="text-slate-900 dark:text-white font-black">${formatCurrency(m.totalAmount)}</strong></span>
+          ${hasPending ? `<span class="text-rose-500 font-bold">Pending: ${formatCurrency(m.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
         </div>
       </div>
 
-      <!-- Action Buttons -->
       <div class="flex items-center gap-2 mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
         ${cleanPhone ? `
-          <a href="https://wa.me/${cleanPhone}" target="_blank" title="Send WhatsApp Message" class="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center justify-center transition">
+          <a href="https://wa.me/${cleanPhone}" target="_blank" title="WhatsApp Message" class="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center justify-center transition">
             <i class="fa-brands fa-whatsapp text-sm"></i>
           </a>
           <a href="tel:${m.phone}" title="Call Member" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
@@ -852,7 +1390,6 @@ function renderMembersGrid() {
         </button>
       </div>
     `;
-
     container.appendChild(card);
   });
 }
@@ -864,9 +1401,12 @@ function openMemberStatement(memberName) {
 
   document.getElementById('modal-member-name').textContent = member.name;
   document.getElementById('modal-member-id').textContent = member.id || 'N/A';
-  document.getElementById('modal-member-phone').textContent = member.phone || 'N/A';
+  document.getElementById('modal-member-regular').textContent = formatCurrency(member.regularAmount);
+  document.getElementById('modal-member-shares').textContent = `${member.totalShares} Shares (৳2k/sh)`;
+  document.getElementById('modal-member-extra').textContent = formatCurrency(member.extraAmount);
+  document.getElementById('modal-member-extra-count').textContent = `${member.extraCount} Extra Slips`;
   document.getElementById('modal-member-total').textContent = formatCurrency(member.totalAmount);
-  document.getElementById('modal-member-shares').textContent = `${member.totalShares} Shares • ${member.depositCount} Deposits`;
+  document.getElementById('modal-member-status').textContent = member.pendingAmount > 0 ? `Pending: ${formatCurrency(member.pendingAmount)}` : 'Cleared';
 
   const tbody = document.getElementById('modal-statement-body');
   tbody.innerHTML = '';
@@ -874,10 +1414,16 @@ function openMemberStatement(memberName) {
   member.transactions.forEach(tx => {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50';
+
+    const typeBadge = tx.isExtra ? 
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Extra Deposit</span>' :
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Regular Share</span>';
+
     tr.innerHTML = `
       <td class="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">${tx.dateFormatted}</td>
+      <td class="py-2.5 px-3 text-center">${typeBadge}</td>
       <td class="py-2.5 px-3 font-mono text-[11px] text-slate-500">${tx.trxId}</td>
-      <td class="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300">${tx.shares}</td>
+      <td class="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300">${tx.isExtra ? '-' : tx.shares}</td>
       <td class="py-2.5 px-3 text-right font-extrabold text-brand-700 dark:text-brand-400">${formatCurrency(tx.amount)}</td>
       <td class="py-2.5 px-3 text-center">
         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.status === 'Received' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'}">
@@ -894,15 +1440,15 @@ function openMemberStatement(memberName) {
 }
 
 function closeStatementModal() {
-  const modal = document.getElementById('modal-statement');
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
+  document.getElementById('modal-statement').classList.add('hidden');
+  document.getElementById('modal-statement').classList.remove('flex');
 }
 
 // Table Filtering, Sorting & Pagination
 function applyFiltersAndRenderTable() {
   const search = state.filters.search.toLowerCase().trim();
   const selMember = state.filters.member;
+  const selType = state.filters.type;
   const selMonth = state.filters.month;
   const selStatus = state.filters.status;
 
@@ -916,6 +1462,8 @@ function applyFiltersAndRenderTable() {
       if (!match) return false;
     }
     if (selMember && tx.name !== selMember) return false;
+    if (selType === 'regular' && tx.isExtra) return false;
+    if (selType === 'extra' && !tx.isExtra) return false;
     if (selMonth && tx.monthLabel !== selMonth) return false;
     if (selStatus && tx.status !== selStatus) return false;
     return true;
@@ -943,14 +1491,18 @@ function applyFiltersAndRenderTable() {
 
   // Update Summary Indicators for Filtered Data
   let filteredTotalAmount = 0;
-  let filteredTotalShares = 0;
+  let filteredRegularAmount = 0;
+  let filteredExtraAmount = 0;
+
   filtered.forEach(tx => {
     filteredTotalAmount += tx.amount;
-    filteredTotalShares += tx.shares;
+    if (tx.isExtra) filteredExtraAmount += tx.amount;
+    else filteredRegularAmount += tx.amount;
   });
 
   document.getElementById('filtered-total-amount').textContent = formatCurrency(filteredTotalAmount);
-  document.getElementById('filtered-total-shares').textContent = filteredTotalShares;
+  document.getElementById('filtered-regular-amount').textContent = formatCurrency(filteredRegularAmount);
+  document.getElementById('filtered-extra-amount').textContent = formatCurrency(filteredExtraAmount);
   document.getElementById('filtered-row-count').textContent = filtered.length;
 
   renderTablePage();
@@ -965,9 +1517,7 @@ function renderTablePage() {
   const pageSize = state.pagination.pageSize;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  if (state.pagination.page > totalPages) {
-    state.pagination.page = totalPages;
-  }
+  if (state.pagination.page > totalPages) state.pagination.page = totalPages;
 
   const startIdx = (state.pagination.page - 1) * pageSize;
   const endIdx = Math.min(startIdx + pageSize, total);
@@ -976,7 +1526,7 @@ function renderTablePage() {
   if (pageRows.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="py-8 text-center text-slate-400">
+        <td colspan="8" class="py-8 text-center text-slate-400">
           <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
           No transactions match your search or filter criteria.
         </td>
@@ -986,12 +1536,40 @@ function renderTablePage() {
     return;
   }
 
+  const isAdmin = canApprovePayments();
+
   pageRows.forEach(tx => {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors';
 
-    let cleanPhone = tx.phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('0')) cleanPhone = '88' + cleanPhone;
+    const isExtra = tx.isExtra;
+    const typeBadge = isExtra ? 
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit</span>' :
+      `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Share Capital</span>`;
+
+    const statusBadge = tx.status === 'Received' ? 
+      '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Received</span>' :
+      '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Pending</span>';
+
+    // Status action button for admin
+    let adminStatusToggle = statusBadge;
+    if (isAdmin) {
+      if (tx.status === 'Pending') {
+        adminStatusToggle = `
+          <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Received')" title="Click to Approve & Mark Received" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-emerald-600 hover:text-white text-amber-800 transition flex items-center gap-1 mx-auto shadow-sm">
+            <span>Pending</span>
+            <i class="fa-solid fa-circle-check text-xs"></i>
+          </button>
+        `;
+      } else {
+        adminStatusToggle = `
+          <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Pending')" title="Click to mark back as Pending" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 hover:bg-amber-100 hover:text-amber-800 text-emerald-800 transition flex items-center gap-1 mx-auto">
+            <span>Received</span>
+            <i class="fa-solid fa-check text-[10px]"></i>
+          </button>
+        `;
+      }
+    }
 
     tr.innerHTML = `
       <td class="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">
@@ -1003,17 +1581,14 @@ function renderTablePage() {
         </span>
         <span>${tx.name}</span>
       </td>
-      <td class="py-3 px-4 font-mono text-[11px] text-slate-500">${tx.id || '-'}</td>
-      <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
-        ${tx.phone ? `
-          <a href="tel:${tx.phone}" class="hover:underline">${tx.phone}</a>
-        ` : '-'}
+      <td class="py-3 px-4 text-center">
+        ${typeBadge}
       </td>
-      <td class="py-3 px-4 text-right font-black text-brand-700 dark:text-brand-400 text-sm">
+      <td class="py-3 px-4 text-right font-black ${isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-brand-700 dark:text-brand-400'} text-sm">
         ${formatCurrency(tx.amount)}
       </td>
       <td class="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
-        ${tx.shares}
+        ${isExtra ? '<span class="text-slate-400">-</span>' : tx.shares}
       </td>
       <td class="py-3 px-4">
         <div class="flex items-center gap-1.5 font-mono text-[11px] text-slate-500 dark:text-slate-400 max-w-xs truncate" title="${tx.trxId}">
@@ -1024,9 +1599,7 @@ function renderTablePage() {
         </div>
       </td>
       <td class="py-3 px-4 text-center">
-        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${tx.status === 'Received' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}">
-          ${tx.status}
-        </span>
+        ${adminStatusToggle}
       </td>
       <td class="py-3 px-4 text-center no-print">
         <button onclick="openMemberStatement('${tx.name.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-brand-700 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950/60 transition">
@@ -1050,7 +1623,6 @@ function renderPagination(start, end, total, totalPages) {
 
   if (totalPages <= 1) return;
 
-  // Previous Button
   const prevBtn = document.createElement('button');
   prevBtn.disabled = state.pagination.page === 1;
   prevBtn.className = `p-1.5 px-2.5 rounded-lg border text-xs ${state.pagination.page === 1 ? 'opacity-40 cursor-not-allowed border-slate-200 text-slate-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'}`;
@@ -1063,7 +1635,6 @@ function renderPagination(start, end, total, totalPages) {
   };
   btnsEl.appendChild(prevBtn);
 
-  // Page Numbers
   for (let i = 1; i <= totalPages; i++) {
     if (i === 1 || i === totalPages || (i >= state.pagination.page - 1 && i <= state.pagination.page + 1)) {
       const pageBtn = document.createElement('button');
@@ -1082,7 +1653,6 @@ function renderPagination(start, end, total, totalPages) {
     }
   }
 
-  // Next Button
   const nextBtn = document.createElement('button');
   nextBtn.disabled = state.pagination.page === totalPages;
   nextBtn.className = `p-1.5 px-2.5 rounded-lg border text-xs ${state.pagination.page === totalPages ? 'opacity-40 cursor-not-allowed border-slate-200 text-slate-400' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'}`;
@@ -1106,17 +1676,20 @@ function handleSort(field) {
   applyFiltersAndRenderTable();
 }
 
+function filterByPending() {
+  switchTab('ledger');
+  document.getElementById('ledger-filter-status').value = 'Pending';
+  state.filters.status = 'Pending';
+  state.pagination.page = 1;
+  applyFiltersAndRenderTable();
+}
+
 // Event Listeners Setup
 function setupEventListeners() {
-  // Refresh button
   document.getElementById('btn-refresh')?.addEventListener('click', () => {
     fetchLiveData();
   });
 
-  // Settings modal open
-  document.getElementById('btn-open-settings')?.addEventListener('click', openSettingsModal);
-
-  // Auto-refresh interval change
   document.getElementById('auto-refresh-select')?.addEventListener('change', (e) => {
     state.autoRefreshIntervalMs = parseInt(e.target.value, 10);
     setupAutoRefresh();
@@ -1127,10 +1700,9 @@ function setupEventListeners() {
     }
   });
 
-  // Theme toggle
   document.getElementById('btn-toggle-theme')?.addEventListener('click', toggleTheme);
 
-  // Ledger Filter Inputs
+  // Search & Filters
   const searchInput = document.getElementById('ledger-search-input');
   searchInput?.addEventListener('input', (e) => {
     state.filters.search = e.target.value;
@@ -1140,6 +1712,12 @@ function setupEventListeners() {
 
   document.getElementById('ledger-filter-member')?.addEventListener('change', (e) => {
     state.filters.member = e.target.value;
+    state.pagination.page = 1;
+    applyFiltersAndRenderTable();
+  });
+
+  document.getElementById('ledger-filter-type')?.addEventListener('change', (e) => {
+    state.filters.type = e.target.value;
     state.pagination.page = 1;
     applyFiltersAndRenderTable();
   });
@@ -1163,9 +1741,10 @@ function setupEventListeners() {
   });
 
   document.getElementById('btn-reset-filters')?.addEventListener('click', () => {
-    state.filters = { search: '', member: '', month: '', status: '' };
+    state.filters = { search: '', member: '', type: '', month: '', status: '' };
     document.getElementById('ledger-search-input').value = '';
     document.getElementById('ledger-filter-member').value = '';
+    document.getElementById('ledger-filter-type').value = '';
     document.getElementById('ledger-filter-month').value = '';
     document.getElementById('ledger-filter-status').value = '';
     state.pagination.page = 1;
@@ -1173,18 +1752,16 @@ function setupEventListeners() {
     showToast('Filters reset', 'info');
   });
 
-  // Member Search Input
   document.getElementById('member-search-input')?.addEventListener('input', () => {
     renderMembersGrid();
   });
 
-  // Export CSV
   document.getElementById('btn-export-csv')?.addEventListener('click', exportLedgerCSV);
 }
 
-// Switch View Tabs
+// Switch Tabs
 function switchTab(tabName) {
-  const tabs = ['analytics', 'members', 'ledger'];
+  const tabs = ['analytics', 'members', 'ledger', 'admin-panel'];
   tabs.forEach(t => {
     const pane = document.getElementById(`tab-content-${t}`);
     const btn = document.getElementById(`tab-btn-${t}`);
@@ -1199,13 +1776,15 @@ function switchTab(tabName) {
     }
   });
 
-  // Resize charts when returning to analytics tab
   if (tabName === 'analytics') {
     Object.values(state.charts).forEach(c => c.resize());
+  } else if (tabName === 'admin-panel') {
+    renderPendingQueue();
+    renderAdminUsersTable();
   }
 }
 
-// Dark / Light Theme
+// Theme Management
 function initTheme() {
   const saved = localStorage.getItem('al_ikhlas_theme');
   if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -1221,7 +1800,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('al_ikhlas_theme', isDark ? 'dark' : 'light');
   updateThemeIcon(isDark);
-  renderCharts(); // Re-render charts with dark/light colors
+  renderCharts();
 }
 
 function updateThemeIcon(isDark) {
@@ -1234,7 +1813,6 @@ function updateThemeIcon(isDark) {
   }
 }
 
-// Copy to Clipboard
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => {
     showToast('Copied to clipboard: ' + text);
@@ -1243,7 +1821,7 @@ function copyToClipboard(text) {
   });
 }
 
-// Export Transactions to CSV / Excel
+// Export Transactions
 function exportLedgerCSV() {
   if (!state.filteredTransactions || state.filteredTransactions.length === 0) {
     showToast('No records to export', 'error');
@@ -1254,9 +1832,9 @@ function exportLedgerCSV() {
     'Deposit Date': tx.dateFormatted,
     'Member Name': tx.name,
     'Member ID': tx.id,
-    'Contact Number': tx.phone,
+    'Deposit Type': tx.isExtra ? 'Extra Deposit' : 'Regular Share Capital',
     'Amount (BDT)': tx.amount,
-    'Number of Share': tx.shares,
+    'Number of Share': tx.isExtra ? 'N/A' : tx.shares,
     'TRX. ID / Reference': tx.trxId,
     'Status': tx.status,
     'Month': tx.monthLabel,
@@ -1266,26 +1844,27 @@ function exportLedgerCSV() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
   XLSX.writeFile(wb, `Al_Ikhlas_Ledger_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  showToast('Exported transaction ledger to Excel!', 'success');
+  showToast('Exported ledger to Excel!', 'success');
 }
 
-// Export Members Summary to Excel
+// Export Members Summary
 function exportMembersList() {
   const membersList = Array.from(state.membersMap.values()).map(m => ({
     'Member Name': m.name,
     'Member ID': m.id,
     'Contact Phone': m.phone,
-    'Total Deposited (BDT)': m.totalAmount,
-    'Received Amount (BDT)': m.receivedAmount,
-    'Pending Amount (BDT)': m.pendingAmount,
+    'Regular Capital (BDT)': m.regularAmount,
     'Total Shares': m.totalShares,
-    'Total Transactions': m.depositCount,
+    'Extra Deposits (BDT)': m.extraAmount,
+    'Grand Total (BDT)': m.totalAmount,
+    'Total Deposits Count': m.depositCount,
+    'Pending Dues (BDT)': m.pendingAmount,
     'Status': m.pendingAmount > 0 ? 'Pending Dues' : 'Cleared',
   }));
 
   const ws = XLSX.utils.json_to_sheet(membersList);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Members');
+  XLSX.utils.book_append_sheet(wb, ws, 'Members_Financial_Summary');
   XLSX.writeFile(wb, `Al_Ikhlas_Members_Summary_${new Date().toISOString().slice(0, 10)}.xlsx`);
   showToast('Exported members summary to Excel!', 'success');
 }

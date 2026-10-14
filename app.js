@@ -1138,7 +1138,8 @@ function handleUserSubmit(e) {
 // Payment Status Overrides & Approval Actions
 function loadSavedOverrides() {
   try {
-    state.statusOverrides = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_OVERRIDES)) || {};
+    localStorage.removeItem(CONFIG.STORAGE_KEY_OVERRIDES);
+    state.statusOverrides = {};
     state.customTransactions = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_NEW_TXS)) || [];
   } catch (e) {
     state.statusOverrides = {};
@@ -1147,7 +1148,7 @@ function loadSavedOverrides() {
 }
 
 function saveOverrides() {
-  localStorage.setItem(CONFIG.STORAGE_KEY_OVERRIDES, JSON.stringify(state.statusOverrides));
+  state.statusOverrides = {};
   localStorage.setItem(CONFIG.STORAGE_KEY_NEW_TXS, JSON.stringify(state.customTransactions));
 }
 
@@ -1689,13 +1690,9 @@ function processRawData(rows, triggerToast = false) {
     // Unique Identifier for this row
     const uniqueId = `row_${i}_${rawName}_${amount}`;
 
-    // Apply Admin status override if any exists
-    let status = (row[colIndex.status] || 'Received').toString().trim();
-    status = status.toLowerCase().includes('pending') ? 'Pending' : 'Received';
-
-    if (state.statusOverrides[uniqueId]) {
-      status = state.statusOverrides[uniqueId];
-    }
+    // Status strictly parsed from spreadsheet
+    let rawStatus = (row[colIndex.status] || 'Received').toString().trim();
+    let status = rawStatus.toLowerCase().includes('pending') ? 'Pending' : 'Received';
 
     // Phone
     const phone = (row[colIndex.phone] || '').toString().trim();
@@ -1854,7 +1851,27 @@ function updateKPIs() {
 
   document.getElementById('kpi-collection-rate').textContent = `${collectionRate}%`;
   document.getElementById('kpi-received-count').textContent = `${receivedCount} Approved`;
-  document.getElementById('kpi-pending-count').textContent = `${pendingCount} Pending`;
+
+  const pendingCountEl = document.getElementById('kpi-pending-count');
+  if (pendingCountEl) {
+    if (pendingCount > 0) {
+      pendingCountEl.className = 'text-amber-600 dark:text-amber-400 font-bold';
+      pendingCountEl.textContent = `${pendingCount} Pending`;
+    } else {
+      pendingCountEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1';
+      pendingCountEl.innerHTML = '<i class="fa-solid fa-circle-check text-[10px]"></i> 0 Pending';
+    }
+  }
+
+  const pendingAmtEl = document.getElementById('kpi-pending-amount');
+  if (pendingAmtEl) {
+    pendingAmtEl.textContent = formatCurrency(pendingAmount);
+    if (pendingAmount === 0) {
+      pendingAmtEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold text-xs';
+    } else {
+      pendingAmtEl.className = 'text-amber-600 dark:text-amber-400 font-bold text-xs';
+    }
+  }
 
   const ledgerTab = document.getElementById('ledger-tab-count');
   if (ledgerTab) ledgerTab.textContent = state.transactions.length;

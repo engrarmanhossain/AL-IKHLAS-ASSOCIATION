@@ -238,12 +238,9 @@
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
         <div class="flex items-center gap-2 font-medium">
           <span class="px-2 py-0.5 rounded-full bg-gold-500 text-brand-950 font-bold uppercase tracking-wider text-[10px]" id="admin-banner-role">President</span>
-          <span id="admin-banner-text">Admin mode active. You can approve payments, manage user roles, and add transactions.</span>
+          <span id="admin-banner-text">Admin mode active. You can manage user roles and view member statements.</span>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="openAddTransactionModal()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold transition flex items-center gap-1">
-            <i class="fa-solid fa-plus text-[10px]"></i> Add Deposit
-          </button>
           <button onclick="switchTab('admin-panel')" class="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 font-semibold transition flex items-center gap-1">
             <i class="fa-solid fa-users-gear text-[10px]"></i> User &amp; Role Management
           </button>
@@ -382,14 +379,9 @@
             <i class="fa-solid fa-id-card-clip"></i>
             <span>Member Directory &amp; Statements</span>
           </button>
-          <button onclick="switchTab('ledger')" id="tab-btn-ledger" class="tab-button py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 whitespace-nowrap flex items-center gap-2">
-            <i class="fa-solid fa-table-list"></i>
-            <span>Transaction Ledger (<span id="ledger-tab-count">0</span>)</span>
-          </button>
           <button onclick="switchTab('admin-panel')" id="tab-btn-admin-panel" class="tab-button py-3 text-sm font-medium border-b-2 border-transparent text-amber-600 hover:text-amber-800 dark:text-amber-400 whitespace-nowrap flex items-center gap-2">
             <i class="fa-solid fa-shield-halved"></i>
             <span>Admin &amp; Roles Portal</span>
-            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" id="admin-badge-count">2 Pending</span>
           </button>
         </nav>
       </div>
@@ -490,137 +482,7 @@
         <div id="members-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
       </div>
 
-      <!-- TAB 3: TRANSACTION LEDGER -->
-      <div id="tab-content-ledger" class="tab-pane hidden space-y-4">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 no-print">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-            <div class="lg:col-span-2 relative">
-              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Search</label>
-              <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input type="text" id="ledger-search-input" placeholder="Search Name, TRX, Phone..." class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Member</label>
-              <select id="ledger-filter-member" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-2.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="">All Members</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 mb-1">Deposit Type</label>
-              <select id="ledger-filter-type" class="w-full bg-purple-50 dark:bg-purple-950/40 text-xs rounded-xl px-2.5 py-2 border border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="">All Deposit Types</option>
-                <option value="regular">Regular Share (৳2,000/sh)</option>
-                <option value="extra">Extra Deposit</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Month Period</label>
-              <select id="ledger-filter-month" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-2.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="">All Months</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Status</label>
-              <select id="ledger-filter-status" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-2.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="">All Statuses</option>
-                <option value="Received">Received</option>
-                <option value="Pending">Pending</option>
-              </select>
-            </div>
-
-            <div class="flex items-end gap-2">
-              <button id="btn-export-csv" class="flex-1 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-file-csv"></i>
-                <span>Export</span>
-              </button>
-              <button id="btn-reset-filters" title="Reset all filters" class="px-2.5 py-2 rounded-xl text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
-                <i class="fa-solid fa-rotate-left"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 gap-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span>Filtered Total: <strong class="text-brand-700 dark:text-brand-400 font-bold" id="filtered-total-amount">৳0</strong></span>
-              <span>•</span>
-              <span>Regular: <strong class="text-emerald-600 font-bold" id="filtered-regular-amount">৳0</strong></span>
-              <span>•</span>
-              <span>Extra: <strong class="text-purple-600 font-bold" id="filtered-extra-amount">৳0</strong></span>
-              <span>•</span>
-              <span>Entries: <strong class="text-slate-800 dark:text-slate-200 font-bold" id="filtered-row-count">0</strong></span>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <span>Rows per page:</span>
-              <select id="ledger-page-size" class="bg-slate-50 dark:bg-slate-800 text-xs rounded-lg px-2 py-1 border border-slate-200 dark:border-slate-700">
-                <option value="15">15</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="9999">All</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs whitespace-nowrap">
-              <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th scope="col" class="py-3.5 px-4 cursor-pointer hover:text-brand-600" onclick="handleSort('depositDate')">
-                    <div class="flex items-center gap-1.5">
-                      <span>Deposit Date</span>
-                      <i class="fa-solid fa-sort text-[10px] text-slate-400"></i>
-                    </div>
-                  </th>
-                  <th scope="col" class="py-3.5 px-4 cursor-pointer hover:text-brand-600" onclick="handleSort('name')">
-                    <div class="flex items-center gap-1.5">
-                      <span>Member Name</span>
-                      <i class="fa-solid fa-sort text-[10px] text-slate-400"></i>
-                    </div>
-                  </th>
-                  <th scope="col" class="py-3.5 px-4 text-center">Type / Category</th>
-                  <th scope="col" class="py-3.5 px-4 cursor-pointer hover:text-brand-600 text-right" onclick="handleSort('amount')">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <span>Amount (৳)</span>
-                      <i class="fa-solid fa-sort text-[10px] text-slate-400"></i>
-                    </div>
-                  </th>
-                  <th scope="col" class="py-3.5 px-4 text-center cursor-pointer hover:text-brand-600" onclick="handleSort('shares')">
-                    <div class="flex items-center justify-center gap-1.5">
-                      <span>Shares</span>
-                      <i class="fa-solid fa-sort text-[10px] text-slate-400"></i>
-                    </div>
-                  </th>
-                  <th scope="col" class="py-3.5 px-4">TRX ID / Reference</th>
-                  <th scope="col" class="py-3.5 px-4 text-center cursor-pointer hover:text-brand-600" onclick="handleSort('status')">
-                    <div class="flex items-center justify-center gap-1.5">
-                      <span>Status / Approval</span>
-                      <i class="fa-solid fa-sort text-[10px] text-slate-400"></i>
-                    </div>
-                  </th>
-                  <th scope="col" class="py-3.5 px-4 text-center no-print">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="ledger-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-            </table>
-          </div>
-
-          <div id="pagination-controls" class="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 gap-3 no-print">
-            <div id="pagination-info">Showing records</div>
-            <div class="flex items-center gap-1" id="pagination-buttons"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 4: ADMIN & ROLES MANAGEMENT PORTAL -->
+      <!-- TAB 3: ADMIN & ROLES MANAGEMENT PORTAL -->
       <div id="tab-content-admin-panel" class="tab-pane hidden space-y-6">
         <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -765,81 +627,6 @@
           </button>
           <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white transition shadow-sm">
             Save User
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: RECORD NEW DEPOSIT -->
-  <div id="modal-add-tx" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
-      <button onclick="closeAddTransactionModal()" class="absolute right-5 top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <div class="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950 flex items-center justify-center text-lg">
-          <i class="fa-solid fa-file-invoice-dollar"></i>
-        </div>
-        <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Record New Deposit</h3>
-          <p class="text-xs text-slate-500">Add regular share capital or extra deposit slip</p>
-        </div>
-      </div>
-
-      <form id="tx-form" onsubmit="handleAddTxSubmit(event)" class="space-y-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Deposit Date</label>
-            <input type="date" id="form-tx-date" required class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Member Name</label>
-            <select id="form-tx-member" required class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            </select>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 mb-1">Deposit Type</label>
-            <select id="form-tx-type" onchange="handleFormTxTypeChange()" class="w-full bg-purple-50 dark:bg-purple-950/40 text-xs rounded-xl px-3 py-2 border border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-200 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500">
-              <option value="regular">Regular Share Capital (৳2,000/sh)</option>
-              <option value="extra">Extra Deposit (Surplus Savings)</option>
-            </select>
-          </div>
-          <div id="form-tx-shares-container">
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Number of Shares</label>
-            <input type="number" id="form-tx-shares" min="1" max="10" value="1" oninput="updateCalculatedAmount()" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Amount (৳ BDT)</label>
-            <input type="number" id="form-tx-amount" required placeholder="2000" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 font-bold text-brand-700">
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Status</label>
-            <select id="form-tx-status" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-              <option value="Received">Received (Approved)</option>
-              <option value="Pending">Pending Approval</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">TRX ID / Reference</label>
-          <input type="text" id="form-tx-trx" required placeholder="e.g. Deposit Slip Book or Bank reference" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button type="button" onclick="closeAddTransactionModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            Cancel
-          </button>
-          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-sm">
-            Save Deposit Record
           </button>
         </div>
       </form>

@@ -1031,7 +1031,8 @@ function updateKPIs() {
   document.getElementById('kpi-received-count').textContent = `${receivedCount} Approved`;
   document.getElementById('kpi-pending-count').textContent = `${pendingCount} Pending`;
 
-  document.getElementById('ledger-tab-count').textContent = state.transactions.length;
+  const ledgerTab = document.getElementById('ledger-tab-count');
+  if (ledgerTab) ledgerTab.textContent = state.transactions.length;
 }
 
 // Populate Filters
@@ -1530,12 +1531,14 @@ function applyFiltersAndRenderTable() {
     else filteredRegularAmount += tx.amount;
   });
 
-  document.getElementById('filtered-total-amount').textContent = formatCurrency(filteredTotalAmount);
-  document.getElementById('filtered-regular-amount').textContent = formatCurrency(filteredRegularAmount);
-  document.getElementById('filtered-extra-amount').textContent = formatCurrency(filteredExtraAmount);
-  document.getElementById('filtered-row-count').textContent = filtered.length;
-
-  renderTablePage();
+  const totalEl = document.getElementById('filtered-total-amount');
+  if (totalEl) {
+    totalEl.textContent = formatCurrency(filteredTotalAmount);
+    document.getElementById('filtered-regular-amount').textContent = formatCurrency(filteredRegularAmount);
+    document.getElementById('filtered-extra-amount').textContent = formatCurrency(filteredExtraAmount);
+    document.getElementById('filtered-row-count').textContent = filtered.length;
+    renderTablePage();
+  }
 }
 
 function renderTablePage() {
@@ -1707,11 +1710,7 @@ function handleSort(field) {
 }
 
 function filterByPending() {
-  switchTab('ledger');
-  document.getElementById('ledger-filter-status').value = 'Pending';
-  state.filters.status = 'Pending';
-  state.pagination.page = 1;
-  applyFiltersAndRenderTable();
+  switchTab('admin-panel');
 }
 
 // Event Listeners Setup
@@ -1772,11 +1771,11 @@ function setupEventListeners() {
 
   document.getElementById('btn-reset-filters')?.addEventListener('click', () => {
     state.filters = { search: '', member: '', type: '', month: '', status: '' };
-    document.getElementById('ledger-search-input').value = '';
-    document.getElementById('ledger-filter-member').value = '';
-    document.getElementById('ledger-filter-type').value = '';
-    document.getElementById('ledger-filter-month').value = '';
-    document.getElementById('ledger-filter-status').value = '';
+    if (document.getElementById('ledger-search-input')) document.getElementById('ledger-search-input').value = '';
+    if (document.getElementById('ledger-filter-member')) document.getElementById('ledger-filter-member').value = '';
+    if (document.getElementById('ledger-filter-type')) document.getElementById('ledger-filter-type').value = '';
+    if (document.getElementById('ledger-filter-month')) document.getElementById('ledger-filter-month').value = '';
+    if (document.getElementById('ledger-filter-status')) document.getElementById('ledger-filter-status').value = '';
     state.pagination.page = 1;
     applyFiltersAndRenderTable();
     showToast('Filters reset', 'info');
@@ -1791,7 +1790,7 @@ function setupEventListeners() {
 
 // Switch Tabs
 function switchTab(tabName) {
-  const tabs = ['analytics', 'members', 'ledger', 'admin-panel'];
+  const tabs = ['analytics', 'members', 'admin-panel'];
   tabs.forEach(t => {
     const pane = document.getElementById(`tab-content-${t}`);
     const btn = document.getElementById(`tab-btn-${t}`);

@@ -1055,61 +1055,8 @@ function togglePaymentApproval(uniqueId, newStatus) {
   showToast(`Payment marked as "${newStatus}"!`, 'success');
 }
 
-// Pending Approval Queue Table
-function renderPendingQueue() {
-  const tbody = document.getElementById('admin-pending-tbody');
-  const badge = document.getElementById('admin-pending-counter-badge');
-  const adminBadgeNav = document.getElementById('admin-badge-count');
-
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  const pendingList = state.transactions.filter(t => t.status === 'Pending');
-
-  if (badge) badge.textContent = `${pendingList.length} Pending Approval`;
-  if (adminBadgeNav) adminBadgeNav.textContent = `${pendingList.length} Pending`;
-
-  if (pendingList.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="py-6 text-center text-emerald-600 font-semibold">
-          <i class="fa-solid fa-circle-check text-xl mb-1 block"></i>
-          All deposits are cleared and approved! No pending payments in the queue.
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  pendingList.forEach(tx => {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50';
-
-    const isExtra = tx.isExtra;
-    const typeBadge = isExtra ? 
-      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Extra Deposit</span>' :
-      `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Share (${tx.shares})</span>`;
-
-    tr.innerHTML = `
-      <td class="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">${tx.dateFormatted}</td>
-      <td class="py-2.5 px-3 font-bold text-slate-900 dark:text-white">${tx.name}</td>
-      <td class="py-2.5 px-3 text-center">${typeBadge}</td>
-      <td class="py-2.5 px-3 font-mono text-[11px] text-slate-500">${tx.trxId}</td>
-      <td class="py-2.5 px-3 text-right font-black text-brand-700 dark:text-brand-400">${formatCurrency(tx.amount)}</td>
-      <td class="py-2.5 px-3 text-center">
-        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-          Pending
-        </span>
-      </td>
-      <td class="py-2.5 px-3 text-center">
-        <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Received')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1 mx-auto">
-          <i class="fa-solid fa-check text-xs"></i> Approve &amp; Mark Received
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+// Pending Approval Queue Table (Section removed per request)
+function renderPendingQueue() {}
 
 // Add Transaction Modal Logic
 function openAddTransactionModal() {
@@ -2189,9 +2136,7 @@ function handleSort(field) {
   applyFiltersAndRenderTable();
 }
 
-function filterByPending() {
-  switchTab('admin-panel');
-}
+function filterByPending() {}
 
 // Event Listeners Setup
 function setupEventListeners() {

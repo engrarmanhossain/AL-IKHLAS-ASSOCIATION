@@ -1294,67 +1294,169 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
   }
   
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheets = ss.getSheets();
-  let targetSheet = null;
+  const allSheets = ss.getSheets();
 
-  // 2. Check if a specific tab name or gid was requested
-  if (e && e.parameter && e.parameter.sheet) {
-    targetSheet = ss.getSheetByName(e.parameter.sheet);
-  }
-  if (!targetSheet && e && e.parameter && e.parameter.gid) {
-    const targetGid = parseInt(e.parameter.gid, 10);
-    targetSheet = sheets.find(s => s.getSheetId() === targetGid);
+  // 2. Target Sheet GIDs for AL-IKHLAS ASSOCIATION (all member deposit tabs)
+  const TARGET_GIDS = [1702656514, 1874744243, 1208245608, 313675577];
+
+  // If a single gid is specifically requested via ?gid=...
+  if (e && e.parameter && e.parameter.gid) {
+    const singleGid = parseInt(e.parameter.gid, 10);
+    const target = allSheets.find(s => s.getSheetId() === singleGid);
+    if (target) {
+      const data = target.getDataRange().getValues();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        sheetName: target.getName(),
+        sheetId: target.getSheetId(),
+        totalRows: data.length,
+        data: data
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
   }
 
-  // 3. Priority: Check for tab with gid=1702656514
-  if (!targetSheet) {
-    targetSheet = sheets.find(s => s.getSheetId() === 1702656514);
+  // 3. Multi-Sheet Combiner: Collect all requested tabs
+  const sheetsToRead = [];
+  const processedGids = new Set();
+
+  for (const gid of TARGET_GIDS) {
+    const s = allSheets.find(sheet => sheet.getSheetId() === gid);
+    if (s && !processedGids.has(gid)) {
+      sheetsToRead.push(s);
+      processedGids.add(gid);
+    }
   }
 
-  // 4. Auto-detect sheet containing deposit/transaction headers
-  if (!targetSheet) {
-    for (const s of sheets) {
-      if (s.getLastRow() > 1) {
-        const headerRow = s.getRange(1, 1, 1, Math.min(s.getLastColumn() || 1, 15)).getValues()[0];
-        const headerStr = headerRow.join(" ").toLowerCase();
-        if (headerStr.includes("deposit") || headerStr.includes("amount") || headerStr.includes("trx") || headerStr.includes("share")) {
-          targetSheet = s;
-          break;
-        }
+  // Also include any other sheet with transaction headers if not already added
+  for (const s of allSheets) {
+    const gid = s.getSheetId();
+    if (!processedGids.has(gid) && s.getLastRow() > 1) {
+      const headerRow = s.getRange(1, 1, 1, Math.min(s.getLastColumn() || 1, 15)).getValues()[0];
+      const headerStr = headerRow.join(" ").toLowerCase();
+      if (headerStr.includes("deposit") || (headerStr.includes("amount") && headerStr.includes("share"))) {
+        sheetsToRead.push(s);
+        processedGids.add(gid);
       }
     }
   }
 
-  // 5. Fallback: Sheet with the most rows or active sheet
-  if (!targetSheet) {
-    let maxRows = -1;
-    for (const s of sheets) {
-      const r = s.getLastRow();
-      if (r > maxRows) {
-        maxRows = r;
-        targetSheet = s;
-      }
+  if (sheetsToRead.length === 0) {
+    sheetsToRead.push(ss.getActiveSheet());
+  }
+
+  // 4. Read and combine rows across all sheets with dynamic header mapping
+  const combinedData = [];
+  const sheetSummaries = [];
+  let masterHeaders = null;
+
+  sheetsToRead.forEach(s => {
+    const values = s.getDataRange().getValues();
+    if (!values || values.length <= 1) return;
+
+    const sName = s.getName();
+    const sGid = s.getSheetId();
+    sheetSummaries.push({
+      name: sName,
+      gid: sGid,
+      rowCount: values.length - 1
+    });
+
+    if (!masterHeaders) {
+      masterHeaders = [
+        "Timestamp",
+        "Deposit Date",
+        "Name",
+        "ID",
+        "Contact Number",
+        "Amount",
+        "TRX. ID",
+        "Number of Share",
+        "Email Address",
+        "Status",
+        "Month",
+        "Source Sheet",
+        "Source GID"
+      ];
+      combinedData.push(masterHeaders);
     }
-  }
-  if (!targetSheet) {
-    targetSheet = ss.getActiveSheet();
-  }
 
-  // 6. Read all rows from the detected sheet
-  const data = targetSheet.getDataRange().getValues();
+    const curHeaders = values[0];
+    const colMap = buildColumnMap(curHeaders);
 
-  // 7. Return payload with metadata and live rows
+    for (let r = 1; r < values.length; r++) {
+      const row = values[r];
+      if (!row || row.length === 0) continue;
+
+      const rawName = colMap.name !== -1 ? (row[colMap.name] || "").toString().trim() : "";
+      const rawAmt = colMap.amount !== -1 ? parseFloat(row[colMap.amount]) : 0;
+      if (!rawName && (isNaN(rawAmt) || rawAmt === 0)) continue;
+
+      const mappedRow = [
+        colMap.timestamp !== -1 ? row[colMap.timestamp] : "",
+        colMap.depositDate !== -1 ? row[colMap.depositDate] : "",
+        rawName,
+        colMap.id !== -1 ? row[colMap.id] : "",
+        colMap.phone !== -1 ? row[colMap.phone] : "",
+        !isNaN(rawAmt) ? rawAmt : 0,
+        colMap.trxId !== -1 ? row[colMap.trxId] : "Deposit Slip",
+        colMap.shares !== -1 ? row[colMap.shares] : 1,
+        colMap.email !== -1 ? row[colMap.email] : "",
+        colMap.status !== -1 ? row[colMap.status] : "Received",
+        colMap.month !== -1 ? row[colMap.month] : "",
+        sName,
+        sGid
+      ];
+
+      combinedData.push(mappedRow);
+    }
+  });
+
   const responsePayload = {
     status: "success",
     timestamp: new Date().toISOString(),
-    sheetName: targetSheet.getName(),
-    sheetId: targetSheet.getSheetId(),
-    totalRows: data.length,
-    data: data
+    isMultiSheet: true,
+    sheets: sheetSummaries,
+    totalRecords: combinedData.length - 1,
+    data: combinedData
   };
 
   return ContentService.createTextOutput(JSON.stringify(responsePayload))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function buildColumnMap(headers) {
+  const map = {
+    timestamp: -1,
+    depositDate: -1,
+    name: -1,
+    id: -1,
+    phone: -1,
+    amount: -1,
+    trxId: -1,
+    shares: -1,
+    email: -1,
+    status: -1,
+    month: -1
+  };
+
+  if (!headers || !Array.isArray(headers)) return map;
+
+  headers.forEach((h, idx) => {
+    const str = (h || "").toString().toLowerCase().trim();
+    if (str.includes("timestamp")) map.timestamp = idx;
+    else if (str.includes("deposit date") || str.includes("date")) map.depositDate = idx;
+    else if (str.includes("name") || str.includes("member")) map.name = idx;
+    else if (str === "id" || str.includes("member id")) map.id = idx;
+    else if (str.includes("phone") || str.includes("contact") || str.includes("mobile")) map.phone = idx;
+    else if (str.includes("amount") || str.includes("taka") || str.includes("bdt")) map.amount = idx;
+    else if (str.includes("trx") || str.includes("transaction") || str.includes("slip") || str.includes("reference")) map.trxId = idx;
+    else if (str.includes("share") || str.includes("number of share")) map.shares = idx;
+    else if (str.includes("email")) map.email = idx;
+    else if (str.includes("status")) map.status = idx;
+    else if (str.includes("month")) map.month = idx;
+  });
+
+  return map;
 }`;
 
 function getApiUrl() {
@@ -1497,11 +1599,19 @@ async function testSpreadsheetConnection() {
           <span>Connection Test SUCCESSFUL (HTTP 200 OK • ${elapsed}ms)</span>
         </div>
         <div class="text-slate-300 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800">
-          <div><strong class="text-slate-400">Sheet Tab Detected:</strong> <span class="text-white">${detectedSheet}</span></div>
+          <div><strong class="text-slate-400">Sheet Tabs:</strong> <span class="text-white">${data.isMultiSheet && data.sheets ? `${data.sheets.length} Tabs Combined` : detectedSheet}</span></div>
           <div><strong class="text-slate-400">Total Rows in Sheet:</strong> <span class="text-white">${totalRows} (${totalRows - 1} deposits)</span></div>
           <div><strong class="text-slate-400">Last Synced At:</strong> <span class="text-white">${new Date().toLocaleTimeString()}</span></div>
           <div><strong class="text-slate-400">API Endpoint:</strong> <span class="text-white truncate block">${apiUrl.slice(0, 45)}...</span></div>
         </div>
+        ${data.isMultiSheet && data.sheets && data.sheets.length > 0 ? `
+          <div class="mt-2 pt-2 border-t border-slate-800 text-[11px]">
+            <div class="text-slate-400 font-bold mb-1">Tabs Combined (${data.sheets.length}):</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] text-emerald-300">
+              ${data.sheets.map(s => `<div>• <strong>${s.name}</strong> (GID: ${s.gid}): <span class="text-slate-300">${s.rowCount} rows</span></div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
         <div class="mt-2 pt-2 border-t border-slate-800 text-[11px]">
           <div class="text-slate-400 font-bold mb-1">Most Recent Row in Spreadsheet:</div>
           <div class="bg-slate-950 p-2 rounded text-emerald-300 truncate">
@@ -1635,6 +1745,7 @@ function processRawData(rows, triggerToast = false) {
   if (!rows || rows.length <= 1) return;
 
   state.rawRows = rows;
+  const headers = rows[0] || [];
   const colIndex = {
     timestamp: 0,
     depositDate: 1,
@@ -1647,7 +1758,26 @@ function processRawData(rows, triggerToast = false) {
     email: 8,
     status: 9,
     month: 10,
+    sourceSheet: 11,
+    sourceGid: 12
   };
+
+  headers.forEach((h, idx) => {
+    const str = (h || '').toString().toLowerCase().trim();
+    if (str.includes('timestamp')) colIndex.timestamp = idx;
+    else if (str.includes('deposit date') || str.includes('date')) colIndex.depositDate = idx;
+    else if (str.includes('name') || str.includes('member')) colIndex.name = idx;
+    else if (str === 'id' || str.includes('member id')) colIndex.id = idx;
+    else if (str.includes('phone') || str.includes('contact') || str.includes('mobile')) colIndex.phone = idx;
+    else if (str.includes('amount') || str.includes('taka') || str.includes('bdt')) colIndex.amount = idx;
+    else if (str.includes('trx') || str.includes('transaction') || str.includes('slip') || str.includes('reference')) colIndex.trxId = idx;
+    else if (str.includes('share') || str.includes('number of share')) colIndex.shares = idx;
+    else if (str.includes('email')) colIndex.email = idx;
+    else if (str.includes('status')) colIndex.status = idx;
+    else if (str.includes('month')) colIndex.month = idx;
+    else if (str.includes('source sheet')) colIndex.sourceSheet = idx;
+    else if (str.includes('source gid')) colIndex.sourceGid = idx;
+  });
 
   const parsedTransactions = [];
   const members = new Map();
@@ -1688,7 +1818,9 @@ function processRawData(rows, triggerToast = false) {
     }
 
     // Unique Identifier for this row
-    const uniqueId = `row_${i}_${rawName}_${amount}`;
+    const srcGid = (row[colIndex.sourceGid] || '').toString().trim();
+    const srcSheet = (row[colIndex.sourceSheet] || '').toString().trim();
+    const uniqueId = `row_${i}_${srcGid}_${rawName}_${amount}_${depDate ? depDate.getTime() : i}`;
 
     // Status strictly parsed from spreadsheet
     let rawStatus = (row[colIndex.status] || 'Received').toString().trim();
@@ -1720,6 +1852,8 @@ function processRawData(rows, triggerToast = false) {
       email: (row[colIndex.email] || '').toString().trim(),
       status: status,
       monthLabel: monthLabel,
+      sourceSheet: srcSheet,
+      sourceGid: srcGid
     };
 
     parsedTransactions.push(tx);

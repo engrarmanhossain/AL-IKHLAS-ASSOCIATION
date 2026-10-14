@@ -212,6 +212,40 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAutoRefresh();
 });
 
+// View Switcher (Login Opening Page vs Main Dashboard)
+function showView(viewName) {
+  const loginView = document.getElementById('view-login');
+  const dashboardView = document.getElementById('view-dashboard');
+  if (!loginView || !dashboardView) return;
+
+  if (viewName === 'login') {
+    loginView.classList.remove('hidden');
+    dashboardView.classList.add('hidden');
+    document.getElementById('login-error')?.classList.add('hidden');
+  } else {
+    loginView.classList.add('hidden');
+    dashboardView.classList.remove('hidden');
+    renderAuthHeader();
+    renderCharts();
+    renderMembersGrid();
+    applyFiltersAndRenderTable();
+    renderPendingQueue();
+  }
+}
+
+function togglePasswordVisibility() {
+  const pwdInput = document.getElementById('login-password');
+  const txt = document.getElementById('pwd-toggle-text');
+  if (!pwdInput) return;
+  if (pwdInput.type === 'password') {
+    pwdInput.type = 'text';
+    if (txt) txt.textContent = 'Hide';
+  } else {
+    pwdInput.type = 'password';
+    if (txt) txt.textContent = 'Show';
+  }
+}
+
 // User & Auth Engine
 function initUsersAndAuth() {
   // Load users from storage or use defaults
@@ -227,18 +261,19 @@ function initUsersAndAuth() {
     localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   }
 
-  // Check current session
+  // Check current session: If no session, Login Page IS THE OPENING PAGE
   const storedAuth = localStorage.getItem(CONFIG.STORAGE_KEY_AUTH);
   if (storedAuth) {
     try {
       state.currentUser = JSON.parse(storedAuth);
+      showView('dashboard');
     } catch (e) {
       state.currentUser = null;
+      showView('login');
     }
   } else {
-    // Default to auto-login as President for seamless administrative convenience
-    state.currentUser = state.users[0]; // Arman Hossain (President)
-    localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
+    state.currentUser = null;
+    showView('login'); // Opening page is LOGIN!
   }
 
   renderAuthHeader();
@@ -271,7 +306,7 @@ function renderAuthHeader() {
 
     container.innerHTML = `
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 cursor-pointer" onclick="openLoginModal()" title="Switch Account">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="handleLogout()" title="Click to Logout / Switch Account">
           <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background-color: ${stringToColor(state.currentUser.name)}">
             ${getInitials(state.currentUser.name)}
           </div>
@@ -284,8 +319,9 @@ function renderAuthHeader() {
             </span>
           </div>
         </div>
-        <button onclick="handleLogout()" title="Logout" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        <button onclick="handleLogout()" title="Logout to Sign In Screen" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition flex items-center gap-1">
           <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+          <span class="hidden md:inline">Logout</span>
         </button>
       </div>
     `;
@@ -300,7 +336,7 @@ function renderAuthHeader() {
     }
   } else {
     container.innerHTML = `
-      <button onclick="openLoginModal()" class="px-3 py-1.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+      <button onclick="showView('login')" class="px-3 py-1.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
         <i class="fa-solid fa-right-to-bracket text-xs"></i>
         <span>Sign In</span>
       </button>
@@ -310,23 +346,21 @@ function renderAuthHeader() {
 }
 
 function openLoginModal() {
-  document.getElementById('login-error')?.classList.add('hidden');
-  document.getElementById('modal-login')?.classList.remove('hidden');
-  document.getElementById('modal-login')?.classList.add('flex');
+  showView('login');
 }
 
 function closeLoginModal() {
-  document.getElementById('modal-login')?.classList.add('hidden');
-  document.getElementById('modal-login')?.classList.remove('flex');
+  if (state.currentUser) showView('dashboard');
 }
 
 function quickFillAdminLogin() {
   document.getElementById('login-email').value = 'armanhossain.eee.info@gmail.com';
   document.getElementById('login-password').value = 'arman2026**';
+  handleLoginSubmit();
 }
 
 function handleLoginSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const emailInput = document.getElementById('login-email').value.trim().toLowerCase();
   const passInput = document.getElementById('login-password').value;
   const errorEl = document.getElementById('login-error');
@@ -339,11 +373,8 @@ function handleLoginSubmit(e) {
   if (user) {
     state.currentUser = user;
     localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(user));
-    renderAuthHeader();
-    closeLoginModal();
-    showToast(`Welcome back, ${user.name}! (${user.role})`, 'success');
-    renderTablePage();
-    renderPendingQueue();
+    showView('dashboard');
+    showToast(`Welcome, ${user.name}! (${user.role})`, 'success');
   } else {
     if (errorEl) {
       errorEl.textContent = 'Invalid credentials. Please verify your email and password.';
@@ -355,10 +386,9 @@ function handleLoginSubmit(e) {
 function handleLogout() {
   state.currentUser = null;
   localStorage.removeItem(CONFIG.STORAGE_KEY_AUTH);
+  showView('login');
   renderAuthHeader();
-  renderTablePage();
-  renderPendingQueue();
-  showToast('Logged out successfully.', 'info');
+  showToast('Logged out. Please sign in to continue.', 'info');
 }
 
 // User & Role Management Table in Admin Tab

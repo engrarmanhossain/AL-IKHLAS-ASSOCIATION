@@ -26,6 +26,7 @@ const DEFAULT_USERS = [
     password: 'arman2026**',
     phone: '01724472229',
     role: 'President', // Super Admin
+    avatar: null,
   },
   {
     id: 'u2',
@@ -35,6 +36,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01628435701',
     role: 'Accountant', // Financial Admin
+    avatar: null,
   },
   {
     id: 'u3',
@@ -44,6 +46,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01846329066',
     role: 'Secretary',
+    avatar: null,
   },
   {
     id: 'u4',
@@ -53,6 +56,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01600102219',
     role: 'Cashier',
+    avatar: null,
   },
   {
     id: 'u5',
@@ -62,6 +66,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01882812309',
     role: 'Member',
+    avatar: null,
   },
   {
     id: 'u6',
@@ -71,6 +76,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01616780307',
     role: 'Member',
+    avatar: null,
   },
   {
     id: 'u7',
@@ -80,6 +86,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01864996234',
     role: 'Member',
+    avatar: null,
   },
   {
     id: 'u8',
@@ -89,6 +96,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01571771318',
     role: 'Member',
+    avatar: null,
   },
   {
     id: 'u9',
@@ -98,6 +106,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01712327821',
     role: 'Member',
+    avatar: null,
   },
   {
     id: 'u10',
@@ -107,6 +116,7 @@ const DEFAULT_USERS = [
     password: 'member2026',
     phone: '01845834641',
     role: 'Member',
+    avatar: null,
   }
 ];
 
@@ -256,6 +266,47 @@ function togglePasswordVisibility() {
   }
 }
 
+// Helper: Render User Avatar (Custom Uploaded Photo or Dynamic Initials)
+function renderUserAvatar(user, sizeClass = 'w-8 h-8 rounded-xl', textClass = 'text-xs') {
+  if (user && user.avatar) {
+    return `<img src="${user.avatar}" class="${sizeClass} object-cover border border-emerald-500/40 shrink-0 shadow-sm" alt="${user.name}">`;
+  }
+  const name = user ? user.name : 'AI';
+  const bg = stringToColor(name);
+  const initials = getInitials(name);
+  return `<div class="${sizeClass} flex items-center justify-center text-white font-extrabold ${textClass} shrink-0 shadow-sm" style="background-color: ${bg}">${initials}</div>`;
+}
+
+// Helper: Compress and Square-Crop Uploaded Image via HTML5 Canvas
+function compressImage(file, maxSize = 256, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const width = img.width;
+        const height = img.height;
+
+        // Center square crop
+        const minDim = Math.min(width, height);
+        const startX = (width - minDim) / 2;
+        const startY = (height - minDim) / 2;
+
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, maxSize, maxSize);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 // User & Auth Engine
 function initUsersAndAuth() {
   // Load users from storage or use defaults
@@ -263,12 +314,13 @@ function initUsersAndAuth() {
   if (storedUsers) {
     try {
       state.users = JSON.parse(storedUsers);
-      // Ensure all users have sheetName mapped
+      // Ensure all users have sheetName and avatar mapped
       state.users.forEach(u => {
         if (!u.sheetName) {
           const def = DEFAULT_USERS.find(d => d.id === u.id || d.email.toLowerCase() === u.email.toLowerCase());
           u.sheetName = def ? def.sheetName : u.name;
         }
+        if (typeof u.avatar === 'undefined') u.avatar = null;
       });
     } catch (e) {
       state.users = [...DEFAULT_USERS];
@@ -283,9 +335,10 @@ function initUsersAndAuth() {
   if (storedAuth) {
     try {
       state.currentUser = JSON.parse(storedAuth);
-      if (!state.currentUser.sheetName) {
-        const matched = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
-        state.currentUser.sheetName = matched?.sheetName || state.currentUser.name;
+      const matched = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
+      if (matched) {
+        state.currentUser.sheetName = matched.sheetName || state.currentUser.name;
+        state.currentUser.avatar = matched.avatar || null;
       }
       showView('dashboard');
       if (!isAdmin()) {
@@ -440,10 +493,8 @@ function renderAuthHeader() {
 
     container.innerHTML = `
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 cursor-pointer" onclick="${isPresident ? "switchTab('admin-panel')" : "switchTab('members')"}" title="Click to view your profile">
-          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background-color: ${stringToColor(state.currentUser.name)}">
-            ${getInitials(state.currentUser.name)}
-          </div>
+        <div class="flex items-center gap-2 cursor-pointer" onclick="openMemberProfileModal()" title="Click to edit profile &amp; change picture">
+          ${renderUserAvatar(state.currentUser, 'w-8 h-8 rounded-xl', 'text-xs')}
           <div class="hidden sm:block text-left">
             <div class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none truncate max-w-[120px]">
               ${state.currentUser.name}
@@ -600,8 +651,11 @@ function renderMemberPersonalView() {
       
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-2">
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl sm:text-2xl shadow-lg shrink-0" style="background-color: ${avatarBg}">
-            ${getInitials(state.currentUser.name)}
+          <div class="relative group shrink-0">
+            ${renderUserAvatar(state.currentUser, 'w-16 h-16 sm:w-20 sm:h-20 rounded-2xl shadow-lg border-2 border-emerald-500/30', 'text-xl sm:text-2xl')}
+            <button onclick="openMemberProfileModal()" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-700 hover:bg-brand-600 text-white text-[10px] flex items-center justify-center shadow transition" title="Change Profile Picture">
+              <i class="fa-solid fa-camera"></i>
+            </button>
           </div>
           <div>
             <div class="flex flex-wrap items-center gap-2">
@@ -772,22 +826,79 @@ function renderMemberPersonalView() {
   `;
 }
 
-// Member Self-Edit Modal (STRICTLY NO PASSWORD CHANGE - ADMIN ONLY)
+// Member Self-Edit Modal with Photo Upload & Security Controls
+let tempProfileAvatar = null;
+
 function openMemberProfileModal() {
   if (!state.currentUser) return;
   const nameInput = document.getElementById('member-profile-name');
   const phoneInput = document.getElementById('member-profile-phone');
   const emailInput = document.getElementById('member-profile-email');
+  const fileInput = document.getElementById('member-profile-photo-input');
   const modal = document.getElementById('modal-member-profile');
 
+  if (fileInput) fileInput.value = '';
   if (nameInput) nameInput.value = state.currentUser.name || '';
   if (phoneInput) phoneInput.value = state.currentUser.phone || '';
   if (emailInput) emailInput.value = state.currentUser.email || '';
+
+  tempProfileAvatar = state.currentUser.avatar || null;
+  updateModalAvatarPreview();
 
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
   }
+}
+
+function updateModalAvatarPreview() {
+  const preview = document.getElementById('member-profile-avatar-preview');
+  const btnRemove = document.getElementById('btn-remove-photo');
+  if (!preview) return;
+
+  if (tempProfileAvatar) {
+    preview.innerHTML = `<img src="${tempProfileAvatar}" class="w-full h-full object-cover rounded-2xl" alt="Preview">`;
+    if (btnRemove) btnRemove.classList.remove('hidden');
+  } else {
+    const curName = (document.getElementById('member-profile-name')?.value || state.currentUser?.name || 'AI');
+    preview.style.backgroundColor = stringToColor(curName);
+    preview.innerHTML = `<span>${getInitials(curName)}</span>`;
+    if (btnRemove) btnRemove.classList.add('hidden');
+  }
+}
+
+async function handleProfilePhotoSelected(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select a valid image file (JPG, PNG, WebP)', 'error');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Image size exceeds 5MB limit', 'error');
+    return;
+  }
+
+  try {
+    showToast('Processing photo...', 'info');
+    const compressed = await compressImage(file, 256, 0.85);
+    tempProfileAvatar = compressed;
+    updateModalAvatarPreview();
+    showToast('Photo uploaded! Click "Save Changes" to apply.', 'success');
+  } catch (err) {
+    console.error('Photo processing failed:', err);
+    showToast('Could not process photo. Please choose another image.', 'error');
+  }
+}
+
+function handleRemoveProfilePhoto() {
+  tempProfileAvatar = '';
+  const fileInput = document.getElementById('member-profile-photo-input');
+  if (fileInput) fileInput.value = '';
+  updateModalAvatarPreview();
+  showToast('Photo removed. Default initials will be used.', 'info');
 }
 
 function closeMemberProfileModal() {
@@ -813,13 +924,18 @@ function handleMemberProfileSubmit(e) {
   // Update in state.currentUser (Password remains unchanged!)
   state.currentUser.name = newName;
   state.currentUser.phone = newPhone;
+  if (tempProfileAvatar !== null) {
+    state.currentUser.avatar = tempProfileAvatar ? tempProfileAvatar : null;
+  }
 
   // Update matching user in state.users list
   const userIdx = state.users.findIndex(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
   if (userIdx !== -1) {
     state.users[userIdx].name = newName;
     state.users[userIdx].phone = newPhone;
-    // Password remains unchanged - only Admin can reset/change password!
+    if (tempProfileAvatar !== null) {
+      state.users[userIdx].avatar = tempProfileAvatar ? tempProfileAvatar : null;
+    }
   }
 
   // Persist to storage
@@ -828,10 +944,15 @@ function handleMemberProfileSubmit(e) {
 
   // Re-render UI
   renderAuthHeader();
-  renderMemberPersonalView();
+  if (isAdmin()) {
+    renderMembersGrid();
+    renderAdminUsersTable();
+  } else {
+    renderMemberPersonalView();
+  }
   closeMemberProfileModal();
 
-  showToast('Profile updated successfully!', 'success');
+  showToast('Profile and picture updated successfully!', 'success');
 }
 
 function printMemberStatement() {
@@ -889,9 +1010,7 @@ function renderAdminUsersTable() {
 
     tr.innerHTML = `
       <td class="py-3 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold" style="background-color: ${stringToColor(u.name)}">
-          ${getInitials(u.name)}
-        </span>
+        ${renderUserAvatar(u, 'w-7 h-7 rounded-lg', 'text-[11px]')}
         <span>${u.name}</span>
       </td>
       <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-xs">${u.email}</td>
@@ -1003,7 +1122,8 @@ function handleUserSubmit(e) {
       email,
       phone,
       role,
-      password: pass
+      password: pass,
+      avatar: null
     });
   }
 
@@ -1788,9 +1908,7 @@ function renderMembersGrid() {
       <div>
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm shadow-md" style="background-color: ${avatarBg}">
-              ${getInitials(m.name)}
-            </div>
+            ${renderUserAvatar(assignedUser || { name: m.name }, 'w-12 h-12 rounded-2xl shadow-md', 'text-sm')}
             <div>
               <div class="flex items-center gap-1.5">
                 <h4 class="font-bold text-base text-slate-900 dark:text-white leading-tight">
@@ -2031,14 +2149,14 @@ function renderTablePage() {
       }
     }
 
+    const txUser = state.users.find(u => u.name.toLowerCase() === tx.name.toLowerCase() || (u.sheetName && u.sheetName.toLowerCase() === tx.name.toLowerCase()));
+
     tr.innerHTML = `
       <td class="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">
         ${tx.dateFormatted}
       </td>
       <td class="py-3 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-        <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-white font-bold shrink-0" style="background-color: ${stringToColor(tx.name)}">
-          ${getInitials(tx.name)}
-        </span>
+        ${renderUserAvatar(txUser || { name: tx.name }, 'w-6 h-6 rounded-full', 'text-[10px]')}
         <span>${tx.name}</span>
       </td>
       <td class="py-3 px-4 text-center">

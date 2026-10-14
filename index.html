@@ -720,6 +720,31 @@
       </div>
 
       <form id="member-profile-form" onsubmit="handleMemberProfileSubmit(event)" class="space-y-4">
+        <!-- Profile Picture Upload & Preview -->
+        <div class="flex items-center gap-4 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+          <div class="relative shrink-0">
+            <div id="member-profile-avatar-preview" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow overflow-hidden border border-slate-200 dark:border-slate-700 bg-brand-700">
+              <!-- Rendered dynamically: img or initials -->
+            </div>
+            <button type="button" onclick="document.getElementById('member-profile-photo-input').click()" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-700 hover:bg-brand-600 text-white text-[10px] flex items-center justify-center shadow transition" title="Upload Photo">
+              <i class="fa-solid fa-camera"></i>
+            </button>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-slate-800 dark:text-slate-200">Profile Picture</div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Upload a photo from your device</p>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="file" id="member-profile-photo-input" accept="image/*" class="hidden" onchange="handleProfilePhotoSelected(event)">
+              <button type="button" onclick="document.getElementById('member-profile-photo-input').click()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-[11px] font-semibold border border-slate-200 dark:border-slate-600 transition flex items-center gap-1 shadow-sm">
+                <i class="fa-solid fa-cloud-arrow-up text-brand-600 text-xs"></i> Choose Photo
+              </button>
+              <button type="button" id="btn-remove-photo" onclick="handleRemoveProfilePhoto()" class="px-2.5 py-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[11px] font-semibold transition hidden">
+                <i class="fa-solid fa-trash-can mr-1 text-[10px]"></i> Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
           <input type="text" id="member-profile-name" required placeholder="Enter full name" class="w-full bg-slate-50 dark:bg-slate-800 text-xs rounded-xl px-3 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">

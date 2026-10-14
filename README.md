@@ -40,12 +40,16 @@ A modern, responsive, real-time executive dashboard built for **AL-IKHLAS ASSOCI
    - **Password Security**: Members **cannot** change passwords. The password field is completely excluded from the member edit modal.
    - **Admin Only**: Only the **President / Super Admin (Arman Hossain)** has administrative authority to set, change, or reset passwords.
 
-5. **👥 User &amp; Role Management Portal (Admin)**:
+5. **📸 Profile Picture Upload &amp; Custom Avatars**:
+   - **Everyone (Members &amp; Admin)** can upload, change, and remove their own **profile picture** directly from their device.
+   - **Smart In-Browser Canvas Cropping**: Automatic center-square cropping and high-quality compression keeps images crisp while staying lightweight in browser storage.
+   - **Pervasive Display**: Custom avatars appear in the navigation bar, personal profile card, admin directory cards, user management table, and transaction logs (falls back to colored dynamic initials if no photo is uploaded).
+
+6. **👥 User &amp; Role Management Portal (Admin)**:
    - Super admin portal to add new members, assign executive roles (President, Accountant, Secretary, Cashier, Member).
    - Admin password change &amp; credential reset capabilities.
-   - Pending payment approvals queue.
 
-6. **⚡ Real-Time Live Sync**:
+7. **⚡ Real-Time Live Sync**:
    - Auto-refreshes every 30 seconds directly from your Google Apps Script endpoint.
    - Instant 0ms cached loading via `localStorage`.
 

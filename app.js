@@ -213,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initUsersAndAuth();
   loadSavedOverrides();
   setupEventListeners();
+  populateApiSettingsForm();
 
   // Load cached data for instant startup
   const cached = localStorage.getItem(CONFIG.STORAGE_KEY_CACHE);
@@ -569,6 +570,7 @@ function handleLoginSubmit(e) {
       switchTab('analytics');
     }
     showToast(`Welcome, ${user.name}! (${user.role})`, 'success');
+    fetchLiveData();
   } else {
     if (errorEl) {
       errorEl.textContent = 'Invalid credentials. Please verify your email and password.';
@@ -1275,22 +1277,284 @@ function handleAddTxSubmit(e) {
   showToast(`Recorded new deposit for ${name} (${formatCurrency(amount)})!`, 'success');
 }
 
-// Fetch Live Data from Google Apps Script
-async function fetchLiveData() {
+// ============================================================================
+// GOOGLE SPREADSHEET REAL-TIME BRIDGE, DIAGNOSTICS & SETTINGS ENGINE
+// ============================================================================
+
+const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
+  // 1. Authenticate with secret token
+  const SECRET_TOKEN = "AlIkhlasSecure2024!";
+  const token = (e && e.parameter && e.parameter.token) ? e.parameter.token : "";
+  
+  if (token !== SECRET_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      error: "Unauthorized: Invalid or missing token" 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets();
+  let targetSheet = null;
+
+  // 2. Check if a specific tab name or gid was requested
+  if (e && e.parameter && e.parameter.sheet) {
+    targetSheet = ss.getSheetByName(e.parameter.sheet);
+  }
+  if (!targetSheet && e && e.parameter && e.parameter.gid) {
+    const targetGid = parseInt(e.parameter.gid, 10);
+    targetSheet = sheets.find(s => s.getSheetId() === targetGid);
+  }
+
+  // 3. Priority: Check for tab with gid=1702656514
+  if (!targetSheet) {
+    targetSheet = sheets.find(s => s.getSheetId() === 1702656514);
+  }
+
+  // 4. Auto-detect sheet containing deposit/transaction headers
+  if (!targetSheet) {
+    for (const s of sheets) {
+      if (s.getLastRow() > 1) {
+        const headerRow = s.getRange(1, 1, 1, Math.min(s.getLastColumn() || 1, 15)).getValues()[0];
+        const headerStr = headerRow.join(" ").toLowerCase();
+        if (headerStr.includes("deposit") || headerStr.includes("amount") || headerStr.includes("trx") || headerStr.includes("share")) {
+          targetSheet = s;
+          break;
+        }
+      }
+    }
+  }
+
+  // 5. Fallback: Sheet with the most rows or active sheet
+  if (!targetSheet) {
+    let maxRows = -1;
+    for (const s of sheets) {
+      const r = s.getLastRow();
+      if (r > maxRows) {
+        maxRows = r;
+        targetSheet = s;
+      }
+    }
+  }
+  if (!targetSheet) {
+    targetSheet = ss.getActiveSheet();
+  }
+
+  // 6. Read all rows from the detected sheet
+  const data = targetSheet.getDataRange().getValues();
+
+  // 7. Return payload with metadata and live rows
+  const responsePayload = {
+    status: "success",
+    timestamp: new Date().toISOString(),
+    sheetName: targetSheet.getName(),
+    sheetId: targetSheet.getSheetId(),
+    totalRows: data.length,
+    data: data
+  };
+
+  return ContentService.createTextOutput(JSON.stringify(responsePayload))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+function getApiUrl() {
+  try {
+    const saved = localStorage.getItem(CONFIG.STORAGE_KEY_SETTINGS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.apiUrl && parsed.apiUrl.trim()) return parsed.apiUrl.trim();
+    }
+  } catch (e) {}
+  return CONFIG.DEFAULT_API_URL;
+}
+
+function getToken() {
+  try {
+    const saved = localStorage.getItem(CONFIG.STORAGE_KEY_SETTINGS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.token && parsed.token.trim()) return parsed.token.trim();
+    }
+  } catch (e) {}
+  return CONFIG.DEFAULT_TOKEN;
+}
+
+function populateApiSettingsForm() {
+  const urlInput = document.getElementById('setting-api-url');
+  const tokenInput = document.getElementById('setting-api-token');
+  const codeBlock = document.getElementById('apps-script-code-block');
+
+  if (urlInput) urlInput.value = getApiUrl();
+  if (tokenInput) tokenInput.value = getToken();
+  if (codeBlock) codeBlock.textContent = UPGRADED_APPS_SCRIPT_CODE;
+}
+
+function handleSaveApiSettings(e) {
+  if (e) e.preventDefault();
+  const urlInput = document.getElementById('setting-api-url');
+  const tokenInput = document.getElementById('setting-api-token');
+  if (!urlInput || !tokenInput) return;
+
+  const apiUrl = urlInput.value.trim();
+  const token = tokenInput.value.trim();
+
+  if (!apiUrl || !apiUrl.startsWith('http')) {
+    showToast('Please enter a valid Google Apps Script Web App URL', 'error');
+    return;
+  }
+
+  const settings = { apiUrl, token: token || CONFIG.DEFAULT_TOKEN };
+  localStorage.setItem(CONFIG.STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+
+  showToast('Spreadsheet bridge settings saved! Syncing live data...', 'success');
+  fetchLiveData(true);
+}
+
+function resetApiSettingsToDefault() {
+  localStorage.removeItem(CONFIG.STORAGE_KEY_SETTINGS);
+  populateApiSettingsForm();
+  showToast('Reset to default Google Apps Script endpoint.', 'info');
+  fetchLiveData(true);
+}
+
+function copyAppsScriptCode() {
+  copyToClipboard(UPGRADED_APPS_SCRIPT_CODE);
+}
+
+function updateDiagnosticDisplay(isSuccess, data, errorMessage = '') {
+  const statusEl = document.getElementById('diag-bridge-status');
+  const dotEl = document.getElementById('diag-status-dot');
+  const sheetEl = document.getElementById('diag-sheet-name');
+  const countEl = document.getElementById('diag-record-count');
+  const lastSyncEl = document.getElementById('diag-last-sync');
+
+  if (isSuccess && data) {
+    if (statusEl) statusEl.textContent = 'Live Connected';
+    if (dotEl) {
+      dotEl.classList.remove('bg-rose-500');
+      dotEl.classList.add('bg-emerald-500');
+    }
+    if (sheetEl) sheetEl.textContent = data.sheetName || state.sheetName || 'Sheet1';
+    if (countEl) countEl.textContent = `${data.data.length - 1} Deposits`;
+    if (lastSyncEl) lastSyncEl.textContent = state.lastUpdated ? state.lastUpdated.toLocaleTimeString() : 'Just now';
+  } else {
+    if (statusEl) statusEl.textContent = 'Sync Offline';
+    if (dotEl) {
+      dotEl.classList.remove('bg-emerald-500');
+      dotEl.classList.add('bg-rose-500');
+    }
+    if (countEl) countEl.textContent = `${state.transactions ? state.transactions.length : 0} Cached`;
+  }
+}
+
+async function testSpreadsheetConnection() {
+  const resultBox = document.getElementById('diag-result-box');
+  const btn = event?.currentTarget;
+  if (btn) btn.disabled = true;
+
+  if (resultBox) {
+    resultBox.classList.remove('hidden');
+    resultBox.innerHTML = `
+      <div class="flex items-center gap-2 text-amber-400">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Pinging Google Spreadsheet API &amp; fetching live rows...</span>
+      </div>
+    `;
+  }
+
+  const apiUrl = getApiUrl();
+  const token = getToken();
+  const startTime = Date.now();
+  const testUrl = `${apiUrl}?token=${encodeURIComponent(token)}&_t=${startTime}`;
+
+  try {
+    const res = await fetch(testUrl, {
+      method: 'GET',
+      cache: 'no-store'
+    });
+
+    const elapsed = Date.now() - startTime;
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.data || !Array.isArray(data.data)) throw new Error('Invalid payload: missing data array');
+
+    const totalRows = data.data.length;
+    const latestRow = data.data[totalRows - 1] || [];
+    const detectedSheet = data.sheetName || 'Active Sheet';
+
+    state.sheetName = detectedSheet;
+    processRawData(data.data, false);
+    state.lastUpdated = new Date();
+    updateSyncTimeBadge();
+    updateDiagnosticDisplay(true, data);
+
+    if (resultBox) {
+      resultBox.innerHTML = `
+        <div class="text-emerald-400 font-bold flex items-center gap-2">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Connection Test SUCCESSFUL (HTTP 200 OK • ${elapsed}ms)</span>
+        </div>
+        <div class="text-slate-300 text-[11px] grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800">
+          <div><strong class="text-slate-400">Sheet Tab Detected:</strong> <span class="text-white">${detectedSheet}</span></div>
+          <div><strong class="text-slate-400">Total Rows in Sheet:</strong> <span class="text-white">${totalRows} (${totalRows - 1} deposits)</span></div>
+          <div><strong class="text-slate-400">Last Synced At:</strong> <span class="text-white">${new Date().toLocaleTimeString()}</span></div>
+          <div><strong class="text-slate-400">API Endpoint:</strong> <span class="text-white truncate block">${apiUrl.slice(0, 45)}...</span></div>
+        </div>
+        <div class="mt-2 pt-2 border-t border-slate-800 text-[11px]">
+          <div class="text-slate-400 font-bold mb-1">Most Recent Row in Spreadsheet:</div>
+          <div class="bg-slate-950 p-2 rounded text-emerald-300 truncate">
+            ${latestRow[1] || latestRow[0]} • ${latestRow[2] || 'Name'} • ৳${(latestRow[5] || 0).toLocaleString()} • ${latestRow[6] || 'TRX'} • ${latestRow[7] || 'Regular'}
+          </div>
+        </div>
+      `;
+    }
+    showToast(`Test successful! Loaded ${totalRows - 1} live records from "${detectedSheet}".`, 'success');
+  } catch (err) {
+    console.error('Test connection error:', err);
+    updateDiagnosticDisplay(false, null, err.message);
+    if (resultBox) {
+      resultBox.innerHTML = `
+        <div class="text-rose-400 font-bold flex items-center gap-2">
+          <i class="fa-solid fa-circle-xmark"></i>
+          <span>Connection Test FAILED: ${err.message}</span>
+        </div>
+        <div class="text-slate-400 text-[11px] mt-2">
+          Troubleshooting Checklist:
+          <ul class="list-disc ml-5 mt-1 space-y-1 text-slate-300">
+            <li>Verify Google Apps Script is deployed with "Who has access: Anyone".</li>
+            <li>Ensure your Secret Access Token matches the one in your script.</li>
+            <li>If you recently updated your script, ensure you selected <strong>"New version"</strong> in Manage Deployments.</li>
+          </ul>
+        </div>
+      `;
+    }
+    showToast(`Test connection failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Fetch Live Fresh Data from Google Apps Script with Cache-Busting
+async function fetchLiveData(isManual = false) {
   if (state.isFetching) return;
   state.isFetching = true;
 
   const refreshIcon = document.getElementById('refresh-icon');
   const syncStatus = document.getElementById('sync-status-text');
+  const indicator = document.querySelector('.live-pulse');
   if (refreshIcon) refreshIcon.classList.add('fa-spin');
   if (syncStatus) syncStatus.textContent = 'Syncing...';
 
-  const fullUrl = `${CONFIG.DEFAULT_API_URL}?token=${encodeURIComponent(CONFIG.DEFAULT_TOKEN)}`;
+  const apiUrl = getApiUrl();
+  const token = getToken();
+  // Cache busting: pass timestamp _t and use cache: 'no-store'
+  const fullUrl = `${apiUrl}?token=${encodeURIComponent(token)}&_t=${Date.now()}`;
 
   try {
     const response = await fetch(fullUrl, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      cache: 'no-store'
     });
 
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
@@ -1298,6 +1562,10 @@ async function fetchLiveData() {
     const result = await response.json();
     if (result.error) throw new Error(result.error);
     if (!result.data || !Array.isArray(result.data)) throw new Error('Invalid data payload');
+
+    if (result.sheetName) {
+      state.sheetName = result.sheetName;
+    }
 
     // Cache to localStorage
     localStorage.setItem(CONFIG.STORAGE_KEY_CACHE, JSON.stringify(result));
@@ -1307,15 +1575,27 @@ async function fetchLiveData() {
 
     state.lastUpdated = new Date();
     updateSyncTimeBadge();
-    showToast('Data live synced directly from spreadsheet!', 'success');
+    updateDiagnosticDisplay(true, result);
+
+    if (indicator) {
+      indicator.classList.remove('bg-rose-500');
+      indicator.classList.add('bg-emerald-500');
+    }
+
+    if (isManual) {
+      showToast(`Data live synced! ${result.data.length - 1} records updated from Google Sheet.`, 'success');
+    }
 
   } catch (error) {
     console.error('Fetch error:', error);
     if (syncStatus) syncStatus.textContent = 'Sync Offline';
-    const indicator = document.querySelector('.live-pulse');
     if (indicator) {
       indicator.classList.remove('bg-emerald-500');
       indicator.classList.add('bg-rose-500');
+    }
+    updateDiagnosticDisplay(false, null, error.message);
+    if (isManual) {
+      showToast(`Sync failed: ${error.message}. Please check connection.`, 'error');
     }
   } finally {
     state.isFetching = false;
@@ -1326,7 +1606,8 @@ async function fetchLiveData() {
 function updateSyncTimeBadge() {
   const timeEl = document.getElementById('last-sync-time');
   const syncStatus = document.getElementById('sync-status-text');
-  if (syncStatus) syncStatus.textContent = 'Live Synced';
+  const recordCount = state.transactions ? state.transactions.length : 0;
+  if (syncStatus) syncStatus.textContent = `Live Synced (${recordCount})`;
   if (timeEl && state.lastUpdated) {
     timeEl.textContent = state.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
@@ -2259,7 +2540,7 @@ function filterByPending() {}
 // Event Listeners Setup
 function setupEventListeners() {
   document.getElementById('btn-refresh')?.addEventListener('click', () => {
-    fetchLiveData();
+    fetchLiveData(true);
   });
 
   document.getElementById('auto-refresh-select')?.addEventListener('change', (e) => {
@@ -2360,6 +2641,7 @@ function switchTab(tabName) {
   } else if (tabName === 'admin-panel') {
     renderPendingQueue();
     renderAdminUsersTable();
+    populateApiSettingsForm();
   } else if (tabName === 'members') {
     if (isAdmin()) {
       renderMembersGrid();

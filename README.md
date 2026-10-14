@@ -49,8 +49,11 @@ A modern, responsive, real-time executive dashboard built for **AL-IKHLAS ASSOCI
    - Super admin portal to add new members, assign executive roles (President, Accountant, Secretary, Cashier, Member).
    - Admin password change &amp; credential reset capabilities.
 
-7. **⚡ Real-Time Live Sync**:
-   - Auto-refreshes every 30 seconds directly from your Google Apps Script endpoint.
+7. **⚡ Real-Time Live Sync &amp; Bridge Diagnostics**:
+   - Auto-refreshes every 30 seconds directly from your Google Apps Script endpoint with cache-busting (`_t` timestamp + `cache: no-store`).
+   - Syncs fresh records immediately upon member or admin sign-in.
+   - Admin Bridge Portal with real-time connection diagnostics (pings endpoint, detects sheet tab name, row count, and latest transaction).
+   - Upgraded Google Apps Script with automatic sheet &amp; tab detection (supporting `gid=1702656514`, Google Forms, and custom tab names).
    - Instant 0ms cached loading via `localStorage`.
 
 ---

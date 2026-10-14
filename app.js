@@ -21,6 +21,7 @@ const DEFAULT_USERS = [
   {
     id: 'u1',
     name: 'Arman Hossain',
+    sheetName: 'Arman Hossain',
     email: 'armanhossain.eee.info@gmail.com',
     password: 'arman2026**',
     phone: '01724472229',
@@ -29,6 +30,7 @@ const DEFAULT_USERS = [
   {
     id: 'u2',
     name: 'Faisal mahmud',
+    sheetName: 'Faisal mahmud',
     email: 'faisal@alikhlas.org',
     password: 'member2026',
     phone: '01628435701',
@@ -37,6 +39,7 @@ const DEFAULT_USERS = [
   {
     id: 'u3',
     name: 'Zafrul monir',
+    sheetName: 'Zafrul monir',
     email: 'zafrul@alikhlas.org',
     password: 'member2026',
     phone: '01846329066',
@@ -45,6 +48,7 @@ const DEFAULT_USERS = [
   {
     id: 'u4',
     name: 'Ikhtiar Uddin',
+    sheetName: 'Ikhtiar Uddin',
     email: 'ikhtiar@alikhlas.org',
     password: 'member2026',
     phone: '01600102219',
@@ -53,6 +57,7 @@ const DEFAULT_USERS = [
   {
     id: 'u5',
     name: 'Mosheur Rahman',
+    sheetName: 'Mosheur Rahman',
     email: 'mosheur@alikhlas.org',
     password: 'member2026',
     phone: '01882812309',
@@ -61,6 +66,7 @@ const DEFAULT_USERS = [
   {
     id: 'u6',
     name: 'Imam Hossan Masum',
+    sheetName: 'Imam Hossan Masum',
     email: 'imam@alikhlas.org',
     password: 'member2026',
     phone: '01616780307',
@@ -69,6 +75,7 @@ const DEFAULT_USERS = [
   {
     id: 'u7',
     name: 'Soleman Hossen',
+    sheetName: 'Soleman Hossen',
     email: 'soleman@alikhlas.org',
     password: 'member2026',
     phone: '01864996234',
@@ -77,6 +84,7 @@ const DEFAULT_USERS = [
   {
     id: 'u8',
     name: 'Tanvir Hasan',
+    sheetName: 'Tanvir Hasan',
     email: 'tanvir@alikhlas.org',
     password: 'member2026',
     phone: '01571771318',
@@ -85,6 +93,7 @@ const DEFAULT_USERS = [
   {
     id: 'u9',
     name: 'Md Mamun',
+    sheetName: 'Md Mamun',
     email: 'mamun@alikhlas.org',
     password: 'member2026',
     phone: '01712327821',
@@ -93,6 +102,7 @@ const DEFAULT_USERS = [
   {
     id: 'u10',
     name: 'Tarek',
+    sheetName: 'Tarek',
     email: 'tarek@alikhlas.org',
     password: 'member2026',
     phone: '01845834641',
@@ -226,8 +236,8 @@ function showView(viewName) {
     loginView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
     renderAuthHeader();
+    updateDashboardForRole();
     renderCharts();
-    renderMembersGrid();
     applyFiltersAndRenderTable();
     renderPendingQueue();
   }
@@ -253,6 +263,13 @@ function initUsersAndAuth() {
   if (storedUsers) {
     try {
       state.users = JSON.parse(storedUsers);
+      // Ensure all users have sheetName mapped
+      state.users.forEach(u => {
+        if (!u.sheetName) {
+          const def = DEFAULT_USERS.find(d => d.id === u.id || d.email.toLowerCase() === u.email.toLowerCase());
+          u.sheetName = def ? def.sheetName : u.name;
+        }
+      });
     } catch (e) {
       state.users = [...DEFAULT_USERS];
     }
@@ -266,7 +283,14 @@ function initUsersAndAuth() {
   if (storedAuth) {
     try {
       state.currentUser = JSON.parse(storedAuth);
+      if (!state.currentUser.sheetName) {
+        const matched = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
+        state.currentUser.sheetName = matched?.sheetName || state.currentUser.name;
+      }
       showView('dashboard');
+      if (!isAdmin()) {
+        switchTab('members');
+      }
     } catch (e) {
       state.currentUser = null;
       showView('login');
@@ -277,17 +301,127 @@ function initUsersAndAuth() {
   }
 
   renderAuthHeader();
+  updateDashboardForRole();
   renderAdminUsersTable();
 }
 
-function canManageUsers() {
+// Security Check: Is logged-in user the President / Super Admin?
+function isAdmin() {
   if (!state.currentUser) return false;
-  return state.currentUser.role === 'President' || state.currentUser.email === 'armanhossain.eee.info@gmail.com';
+  return state.currentUser.role === 'President' || state.currentUser.email.toLowerCase() === 'armanhossain.eee.info@gmail.com';
+}
+
+function canManageUsers() {
+  return isAdmin();
 }
 
 function canApprovePayments() {
   if (!state.currentUser) return false;
   return ['President', 'Accountant', 'Cashier'].includes(state.currentUser.role);
+}
+
+// Helper: Match current user with member statement data in spreadsheet
+function getMemberDataForUser(user) {
+  if (!user) return null;
+  const userLower = (user.name || '').trim().toLowerCase();
+  const sheetLower = (user.sheetName || '').trim().toLowerCase();
+  const phoneClean = (user.phone || '').replace(/[^0-9]/g, '');
+
+  // 1. Check sheetName match
+  if (sheetLower) {
+    for (const [name, m] of state.membersMap.entries()) {
+      if (name.toLowerCase() === sheetLower) return m;
+    }
+  }
+
+  // 2. Check full name match
+  if (userLower) {
+    for (const [name, m] of state.membersMap.entries()) {
+      if (name.toLowerCase() === userLower) return m;
+    }
+  }
+
+  // 3. Check phone match
+  if (phoneClean && phoneClean.length >= 7) {
+    for (const [name, m] of state.membersMap.entries()) {
+      const mPhone = (m.phone || '').replace(/[^0-9]/g, '');
+      if (mPhone && (mPhone.endsWith(phoneClean) || phoneClean.endsWith(mPhone))) {
+        return m;
+      }
+    }
+  }
+
+  // 4. Check first & last word match
+  if (userLower) {
+    const partsUser = userLower.split(/\s+/);
+    for (const [name, m] of state.membersMap.entries()) {
+      const partsM = name.toLowerCase().split(/\s+/);
+      if (partsUser[0] === partsM[0] && partsUser[partsUser.length - 1] === partsM[partsM.length - 1]) {
+        return m;
+      }
+    }
+  }
+
+  // Fallback safe dummy object
+  return {
+    name: user.name,
+    id: user.id || 'Member',
+    phone: user.phone || '',
+    totalAmount: 0,
+    regularAmount: 0,
+    extraAmount: 0,
+    receivedAmount: 0,
+    pendingAmount: 0,
+    totalShares: 0,
+    regularCount: 0,
+    extraCount: 0,
+    depositCount: 0,
+    transactions: [],
+  };
+}
+
+// Update UI Layout Based on Admin vs General Member Role
+function updateDashboardForRole() {
+  const isSuperAdmin = isAdmin();
+  const adminBanner = document.getElementById('admin-banner');
+  const adminTabBtn = document.getElementById('tab-btn-admin-panel');
+  const adminDirView = document.getElementById('admin-directory-view');
+  const memberPersonalView = document.getElementById('member-personal-view');
+  const chartRankingCard = document.getElementById('chart-card-ranking');
+  const tabTitleAnalytics = document.getElementById('tab-title-analytics');
+  const tabTitleMembers = document.getElementById('tab-title-members');
+  const tabIconMembers = document.getElementById('tab-icon-members');
+
+  if (isSuperAdmin) {
+    // Admin Mode (President: Arman Hossain)
+    if (tabTitleAnalytics) tabTitleAnalytics.textContent = 'Financial Analytics & Trends';
+    if (tabTitleMembers) tabTitleMembers.textContent = 'Member Directory & Statements';
+    if (tabIconMembers) tabIconMembers.className = 'fa-solid fa-id-card-clip';
+    
+    if (adminTabBtn) adminTabBtn.classList.remove('hidden');
+    if (adminBanner) adminBanner.classList.remove('hidden');
+    if (adminDirView) adminDirView.classList.remove('hidden');
+    if (memberPersonalView) memberPersonalView.classList.add('hidden');
+    if (chartRankingCard) chartRankingCard.classList.remove('hidden');
+    
+    renderMembersGrid();
+    renderPendingQueue();
+    renderAdminUsersTable();
+  } else {
+    // Member Dashboard Mode (General Members)
+    // Constraint: Only overall summary + his details + edit profile (NO password change option)
+    if (tabTitleAnalytics) tabTitleAnalytics.textContent = 'Association Overview & Trends';
+    if (tabTitleMembers) tabTitleMembers.textContent = 'My Profile & Statement';
+    if (tabIconMembers) tabIconMembers.className = 'fa-solid fa-user-shield';
+    
+    if (adminTabBtn) adminTabBtn.classList.add('hidden');
+    if (adminBanner) adminBanner.classList.add('hidden');
+    if (adminDirView) adminDirView.classList.add('hidden');
+    if (memberPersonalView) memberPersonalView.classList.remove('hidden');
+    if (chartRankingCard) chartRankingCard.classList.add('hidden'); // Privacy: Hide other members ranking
+    
+    renderMemberPersonalView();
+  }
 }
 
 function renderAuthHeader() {
@@ -298,7 +432,7 @@ function renderAuthHeader() {
   if (!container) return;
 
   if (state.currentUser) {
-    const isPresident = state.currentUser.role === 'President';
+    const isPresident = isAdmin();
     const isAccountant = state.currentUser.role === 'Accountant';
     const roleColor = isPresident ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 
                       isAccountant ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 
@@ -306,7 +440,7 @@ function renderAuthHeader() {
 
     container.innerHTML = `
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 cursor-pointer" onclick="handleLogout()" title="Click to Logout / Switch Account">
+        <div class="flex items-center gap-1.5 cursor-pointer" onclick="${isPresident ? "switchTab('admin-panel')" : "switchTab('members')"}" title="Click to view your profile">
           <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs" style="background-color: ${stringToColor(state.currentUser.name)}">
             ${getInitials(state.currentUser.name)}
           </div>
@@ -327,7 +461,7 @@ function renderAuthHeader() {
     `;
 
     if (adminBanner) {
-      if (canApprovePayments()) {
+      if (isPresident) {
         adminBanner.classList.remove('hidden');
         if (adminRoleBadge) adminRoleBadge.textContent = state.currentUser.role;
       } else {
@@ -372,8 +506,17 @@ function handleLoginSubmit(e) {
 
   if (user) {
     state.currentUser = user;
+    if (!state.currentUser.sheetName) {
+      state.currentUser.sheetName = user.sheetName || user.name;
+    }
     localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(user));
     showView('dashboard');
+    updateDashboardForRole();
+    if (!isAdmin()) {
+      switchTab('members'); // Land directly on personal profile & statement!
+    } else {
+      switchTab('analytics');
+    }
     showToast(`Welcome, ${user.name}! (${user.role})`, 'success');
   } else {
     if (errorEl) {
@@ -389,6 +532,339 @@ function handleLogout() {
   showView('login');
   renderAuthHeader();
   showToast('Logged out. Please sign in to continue.', 'info');
+}
+
+// RENDER MEMBER PERSONAL VIEW: HIS DETAILS, STATEMENT & EDIT PROFILE BUTTON
+function renderMemberPersonalView() {
+  const container = document.getElementById('member-personal-view');
+  if (!container || !state.currentUser) return;
+
+  const memberData = getMemberDataForUser(state.currentUser);
+  const avatarBg = stringToColor(state.currentUser.name);
+  const hasPending = memberData.pendingAmount > 0;
+
+  let cleanPhone = (state.currentUser.phone || memberData.phone || '').replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('0')) cleanPhone = '88' + cleanPhone;
+
+  const roleBadge = state.currentUser.role || 'Member';
+  const roleBadgeClass = roleBadge === 'President' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                         roleBadge === 'Accountant' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                         'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+
+  let transactionsHtml = '';
+  if (memberData.transactions && memberData.transactions.length > 0) {
+    transactionsHtml = memberData.transactions.map((tx) => {
+      const typeBadge = tx.isExtra ? 
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit</span>' :
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share</span>';
+
+      const statusBadge = tx.status === 'Received' ?
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><i class="fa-solid fa-circle-check mr-1 text-[9px]"></i>Received</span>' :
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"><i class="fa-solid fa-clock mr-1 text-[9px]"></i>Pending</span>';
+
+      return `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+          <td class="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">${tx.dateFormatted}</td>
+          <td class="py-3 px-4 text-center">${typeBadge}</td>
+          <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">
+            <div class="flex items-center gap-1.5">
+              <span>${tx.trxId}</span>
+              <button onclick="copyToClipboard('${tx.trxId.replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 no-print" title="Copy Reference">
+                <i class="fa-regular fa-copy text-[10px]"></i>
+              </button>
+            </div>
+          </td>
+          <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${tx.isExtra ? '-' : tx.shares}</td>
+          <td class="py-3 px-4 text-right font-black ${tx.isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-emerald-700 dark:text-emerald-400'} text-sm">
+            ${formatCurrency(tx.amount)}
+          </td>
+          <td class="py-3 px-4 text-center">${statusBadge}</td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    transactionsHtml = `
+      <tr>
+        <td colspan="6" class="py-10 text-center text-slate-400">
+          <i class="fa-solid fa-folder-open text-3xl mb-2 block text-slate-300 dark:text-slate-600"></i>
+          <span>No deposit slips recorded yet for your account.</span>
+        </td>
+      </tr>
+    `;
+  }
+
+  container.innerHTML = `
+    <!-- 1. PERSONAL PROFILE HEADER CARD -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-brand-600 via-emerald-500 to-gold-500"></div>
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-2">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl sm:text-2xl shadow-lg shrink-0" style="background-color: ${avatarBg}">
+            ${getInitials(state.currentUser.name)}
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                ${state.currentUser.name}
+              </h3>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${roleBadgeClass}">
+                ${roleBadge}
+              </span>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                ${memberData.id || 'Member'}
+              </span>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
+              <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-envelope text-brand-600"></i>
+                <span class="font-mono">${state.currentUser.email}</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-phone text-brand-600"></i>
+                <span class="font-mono">${state.currentUser.phone || 'No phone set'}</span>
+              </div>
+              ${cleanPhone ? `
+                <div class="flex items-center gap-1">
+                  <a href="https://wa.me/${cleanPhone}" target="_blank" class="text-emerald-600 hover:underline flex items-center gap-1 font-semibold">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTION BUTTONS: EDIT PROFILE (NO PASSWORD CHANGE) & EXPORTS -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button onclick="openMemberProfileModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-700 to-brand-600 hover:from-brand-600 hover:to-brand-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-brand-700/20">
+            <i class="fa-solid fa-user-pen text-xs"></i>
+            <span>Edit Profile</span>
+          </button>
+          <button onclick="printMemberStatement()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+            <i class="fa-solid fa-print text-xs"></i>
+            <span>Print Statement</span>
+          </button>
+          <button onclick="exportMyStatementExcel()" class="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-xs font-bold transition flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800">
+            <i class="fa-solid fa-file-excel text-xs"></i>
+            <span>Export Excel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. FOUR FINANCIAL SUMMARY CARDS FOR THIS MEMBER -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Card 1: Regular Share Capital -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition-all">
+        <div class="absolute -right-3 -top-3 w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+          <i class="fa-solid fa-layer-group text-xl opacity-70"></i>
+        </div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">My Regular Capital</p>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span class="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">${formatCurrency(memberData.regularAmount)}</span>
+        </div>
+        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <span><strong>${memberData.totalShares} Shares</strong> (@ ৳2,000)</span>
+          <span>${memberData.regularCount} Slips</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Extra Deposits -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-purple-200 dark:border-purple-900/60 shadow-sm relative overflow-hidden group hover:border-purple-500 transition-all">
+        <div class="absolute -right-3 -top-3 w-14 h-14 bg-purple-50 dark:bg-purple-950/40 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400">
+          <i class="fa-solid fa-coins text-xl opacity-70"></i>
+        </div>
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-semibold uppercase tracking-wider text-purple-800 dark:text-purple-300">My Extra Deposits</p>
+          <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus</span>
+        </div>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span class="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300">${formatCurrency(memberData.extraAmount)}</span>
+        </div>
+        <div class="mt-3 flex items-center justify-between text-xs text-purple-700 dark:text-purple-300 pt-2 border-t border-purple-100 dark:border-purple-900/40">
+          <span><strong>${memberData.extraCount} Extra Slips</strong></span>
+          <span>Separated</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Grand Total Paid -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-brand-500 transition-all">
+        <div class="absolute -right-3 -top-3 w-14 h-14 bg-brand-50 dark:bg-brand-950/40 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400">
+          <i class="fa-solid fa-wallet text-xl opacity-70"></i>
+        </div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Grand Total Paid</p>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span class="text-2xl sm:text-3xl font-black text-brand-900 dark:text-brand-300">${formatCurrency(memberData.totalAmount)}</span>
+        </div>
+        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <span>Deposits: <strong>${memberData.depositCount} Total</strong></span>
+          <span class="text-emerald-600 font-bold">Verified</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Clearance & Dues Status -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition-all">
+        <div class="absolute -right-3 -top-3 w-14 h-14 ${hasPending ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'} rounded-full flex items-center justify-center">
+          <i class="fa-solid ${hasPending ? 'fa-clock' : 'fa-circle-check'} text-xl opacity-70"></i>
+        </div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Account Health</p>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span class="text-2xl sm:text-3xl font-black ${hasPending ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}">
+            ${hasPending ? 'Dues Pending' : '100% Cleared'}
+          </span>
+        </div>
+        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+          ${hasPending ? `<span class="text-amber-600 font-bold">Pending: ${formatCurrency(memberData.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ Zero Pending Dues</span>'}
+          <span class="text-slate-400 text-[10px]">Master Sheet Synced</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. PERSONAL STATEMENT LEDGER TABLE -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-receipt text-brand-600"></i>
+            My Deposit History &amp; Contribution Ledger
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Chronological record of all share capital and extra deposits credited to your account
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            ${memberData.transactions ? memberData.transactions.length : 0} Records Found
+          </span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs whitespace-nowrap">
+          <thead class="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400">
+            <tr>
+              <th class="py-3 px-4">Date</th>
+              <th class="py-3 px-4 text-center">Deposit Type</th>
+              <th class="py-3 px-4">TRX ID / Slip Reference</th>
+              <th class="py-3 px-4 text-center">Shares</th>
+              <th class="py-3 px-4 text-right">Amount (BDT)</th>
+              <th class="py-3 px-4 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            ${transactionsHtml}
+          </tbody>
+          <tfoot class="bg-slate-50 dark:bg-slate-800/50 font-bold text-xs text-slate-700 dark:text-slate-300 border-t-2 border-slate-200 dark:border-slate-700">
+            <tr>
+              <td class="py-3 px-4" colspan="3">Grand Total Contributed</td>
+              <td class="py-3 px-4 text-center text-brand-700 dark:text-brand-400 font-extrabold">${memberData.totalShares} Shares</td>
+              <td class="py-3 px-4 text-right text-brand-700 dark:text-brand-400 text-sm font-black">${formatCurrency(memberData.totalAmount)}</td>
+              <td class="py-3 px-4 text-center text-emerald-600 font-bold">100% Verified</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// Member Self-Edit Modal (STRICTLY NO PASSWORD CHANGE - ADMIN ONLY)
+function openMemberProfileModal() {
+  if (!state.currentUser) return;
+  const nameInput = document.getElementById('member-profile-name');
+  const phoneInput = document.getElementById('member-profile-phone');
+  const emailInput = document.getElementById('member-profile-email');
+  const modal = document.getElementById('modal-member-profile');
+
+  if (nameInput) nameInput.value = state.currentUser.name || '';
+  if (phoneInput) phoneInput.value = state.currentUser.phone || '';
+  if (emailInput) emailInput.value = state.currentUser.email || '';
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function closeMemberProfileModal() {
+  const modal = document.getElementById('modal-member-profile');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function handleMemberProfileSubmit(e) {
+  if (e) e.preventDefault();
+  if (!state.currentUser) return;
+
+  const newName = document.getElementById('member-profile-name').value.trim();
+  const newPhone = document.getElementById('member-profile-phone').value.trim();
+
+  if (!newName) {
+    showToast('Name cannot be empty', 'error');
+    return;
+  }
+
+  // Update in state.currentUser (Password remains unchanged!)
+  state.currentUser.name = newName;
+  state.currentUser.phone = newPhone;
+
+  // Update matching user in state.users list
+  const userIdx = state.users.findIndex(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
+  if (userIdx !== -1) {
+    state.users[userIdx].name = newName;
+    state.users[userIdx].phone = newPhone;
+    // Password remains unchanged - only Admin can reset/change password!
+  }
+
+  // Persist to storage
+  localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
+  localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
+
+  // Re-render UI
+  renderAuthHeader();
+  renderMemberPersonalView();
+  closeMemberProfileModal();
+
+  showToast('Profile updated successfully!', 'success');
+}
+
+function printMemberStatement() {
+  if (!state.currentUser) return;
+  const targetName = state.currentUser.sheetName || state.currentUser.name;
+  openMemberStatement(targetName);
+}
+
+function exportMyStatementExcel() {
+  if (!state.currentUser) return;
+  const memberData = getMemberDataForUser(state.currentUser);
+  if (!memberData || !memberData.transactions || memberData.transactions.length === 0) {
+    showToast('No statement records to export', 'error');
+    return;
+  }
+
+  const exportData = memberData.transactions.map(tx => ({
+    'Date': tx.dateFormatted,
+    'Member Name': state.currentUser.name,
+    'Member ID': memberData.id,
+    'Deposit Type': tx.isExtra ? 'Extra Deposit' : 'Regular Share Capital',
+    'Amount (BDT)': tx.amount,
+    'Number of Share': tx.isExtra ? 'N/A' : tx.shares,
+    'TRX. ID / Reference': tx.trxId,
+    'Status': tx.status,
+    'Month': tx.monthLabel,
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'My_Statement');
+  XLSX.writeFile(wb, `Al_Ikhlas_Statement_${state.currentUser.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  showToast('Exported your personal statement to Excel!', 'success');
 }
 
 // User & Role Management Table in Admin Tab
@@ -976,6 +1452,7 @@ function processRawData(rows, triggerToast = false) {
   renderMembersGrid();
   renderPendingQueue();
   applyFiltersAndRenderTable();
+  updateDashboardForRole();
 }
 
 // KPI Calculation Engine
@@ -1427,7 +1904,10 @@ function renderMembersGrid() {
 
 // Open Member Statement Modal
 function openMemberStatement(memberName) {
-  const member = state.membersMap.get(memberName);
+  let member = state.membersMap.get(memberName);
+  if (!member) {
+    member = getMemberDataForUser({ name: memberName });
+  }
   if (!member) return;
 
   document.getElementById('modal-member-name').textContent = member.name;
@@ -1569,7 +2049,7 @@ function renderTablePage() {
     return;
   }
 
-  const isAdmin = canApprovePayments();
+  const canApprove = canApprovePayments();
 
   pageRows.forEach(tx => {
     const tr = document.createElement('tr');
@@ -1586,7 +2066,7 @@ function renderTablePage() {
 
     // Status action button for admin
     let adminStatusToggle = statusBadge;
-    if (isAdmin) {
+    if (canApprove) {
       if (tx.status === 'Pending') {
         adminStatusToggle = `
           <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Received')" title="Click to Approve & Mark Received" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-emerald-600 hover:text-white text-amber-800 transition flex items-center gap-1 mx-auto shadow-sm">
@@ -1790,6 +2270,13 @@ function setupEventListeners() {
 
 // Switch Tabs
 function switchTab(tabName) {
+  // Access control guard: Only President / Super Admin can access admin-panel
+  if (tabName === 'admin-panel' && !isAdmin()) {
+    showToast('Access restricted to President / Admin.', 'error');
+    switchTab('members');
+    return;
+  }
+
   const tabs = ['analytics', 'members', 'admin-panel'];
   tabs.forEach(t => {
     const pane = document.getElementById(`tab-content-${t}`);
@@ -1810,6 +2297,12 @@ function switchTab(tabName) {
   } else if (tabName === 'admin-panel') {
     renderPendingQueue();
     renderAdminUsersTable();
+  } else if (tabName === 'members') {
+    if (isAdmin()) {
+      renderMembersGrid();
+    } else {
+      renderMemberPersonalView();
+    }
   }
 }
 

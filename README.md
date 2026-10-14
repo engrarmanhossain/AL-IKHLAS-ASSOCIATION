@@ -27,18 +27,25 @@ A modern, responsive, real-time executive dashboard built for **AL-IKHLAS ASSOCI
      - **Cashier** (Ikhtiar Uddin) — Payment verification and receipt issuance.
      - **General Members** — Secure statement viewing, filtered transactions, and receipt printing.
 
-3. **✅ Payment Approval &amp; Pending Management**:
-   - **Pending Approvals Queue**: Dedicated queue in the Admin tab for 1-click approvals.
-   - **Interactive Ledger Approvals**: Presidents and Accountants can approve pending payments or toggle status directly from the main transaction table.
-   - **Record New Deposits**: Admins can record incoming share capital or extra deposits directly into the system.
+3. **👤 Member Dashboard &amp; Personal Statement Privacy**:
+   - General members see **only** the aggregate Executive Financial Overview (KPIs and association monthly trends) and **their own personal records**.
+   - Members cannot view other members' personal cards or contribution totals.
+   - Dedicated **My Profile &amp; Statement** tab with:
+     - Personal profile card with contact and membership status.
+     - 4 financial cards: Regular Share Capital, Extra Deposits, Grand Total Paid, and Clearance Health.
+     - Chronological deposit ledger with official print and Excel export options.
 
-4. **👥 User &amp; Role Management Portal**:
-   - Add new members with assigned roles.
-   - Change existing user roles (e.g. promote member to Accountant or President).
-   - Remove/deactivate accounts.
-   - Persistent role and user storage.
+4. **✏️ Profile Editing &amp; Strict Password Governance**:
+   - **Members**: Can edit their **Full Name** and **Contact Phone Number**.
+   - **Password Security**: Members **cannot** change passwords. The password field is completely excluded from the member edit modal.
+   - **Admin Only**: Only the **President / Super Admin (Arman Hossain)** has administrative authority to set, change, or reset passwords.
 
-5. **⚡ Real-Time Live Sync**:
+5. **👥 User &amp; Role Management Portal (Admin)**:
+   - Super admin portal to add new members, assign executive roles (President, Accountant, Secretary, Cashier, Member).
+   - Admin password change &amp; credential reset capabilities.
+   - Pending payment approvals queue.
+
+6. **⚡ Real-Time Live Sync**:
    - Auto-refreshes every 30 seconds directly from your Google Apps Script endpoint.
    - Instant 0ms cached loading via `localStorage`.
 

@@ -53,6 +53,16 @@ const DEFAULT_BANK_DETAILS = {
 // Official Bank Debited List & Balance After Ledger (Synced with Google Sheet gid=1208245608)
 const DEFAULT_BANK_LEDGER = [
   {
+    dateFormatted: '05-Oct-2025',
+    date: new Date('2025-10-05'),
+    cause: 'Frist Deposit amount',
+    type: 'Deposit',
+    amount: 500.00,
+    rest: 500.00,
+    balanceAfter: 500.00,
+    message: 'Assalamu Alaikum. Your A/C 999101****351 has been credited by BDT 500.00 on 5-OCT-25, 04:45:31 PM. Available balance BDT 500.00. MTB Hotline 16219'
+  },
+  {
     dateFormatted: '20-Oct-2025',
     date: new Date('2025-10-20'),
     cause: 'Account maintenance',
@@ -3024,14 +3034,29 @@ function processDebitedSheetData(rows) {
     const balAfter = (rawBal !== undefined && rawBal !== null && rawBal !== '' && !isNaN(parseFloat(rawBal))) ? parseFloat(rawBal) : 0;
     const msg = (row[colMap.message] || '').toString().trim();
 
-    const isCredit = type.toLowerCase() === 'credit' || cause.toLowerCase().includes('interest');
-    const isWithdraw = type.toLowerCase() === 'withdraw' || cause.toLowerCase().includes('withdraw') || amt >= 50000;
+    const typeLower = (row[colMap.type] || '').toString().toLowerCase().trim();
+    const causeLower = cause.toLowerCase();
+    const msgLower = msg.toLowerCase();
 
-    if (isCredit) {
+    const isDeposit = typeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit');
+    const isInterest = causeLower.includes('interest');
+    const isCredit = isDeposit || typeLower === 'credit' || isInterest || msgLower.includes('credited');
+    const isWithdraw = typeLower === 'withdraw' || (!isDeposit && !isCredit && (causeLower.includes('withdraw') || amt >= 50000));
+
+    let displayType = 'Debit';
+    if (isDeposit) {
+      displayType = 'Deposit';
+    } else if (isCredit) {
+      displayType = 'Credit';
+    } else if (isWithdraw) {
+      displayType = 'Withdraw';
+    }
+
+    if (isInterest || (isCredit && !isDeposit)) {
       totalCred += amt;
     } else if (isWithdraw) {
       totalWith += amt;
-    } else {
+    } else if (!isDeposit) {
       totalDeb += amt;
     }
 
@@ -3040,7 +3065,7 @@ function processDebitedSheetData(rows) {
       dateFormatted: formatDate(d),
       amount: amt,
       cause: cause,
-      type: isCredit ? 'Credit' : (isWithdraw ? 'Withdraw' : 'Debit'),
+      type: displayType,
       rest: balAfter,
       balanceAfter: balAfter,
       message: msg
@@ -3247,7 +3272,23 @@ function processRawData(rows, triggerToast = false) {
       const fallbackEntry = DEFAULT_BANK_LEDGER[bankDebits.length] || DEFAULT_BANK_LEDGER.find(d => Math.abs(d.amount - debitAmt) < 0.01);
 
       const cause = (rawCause && rawCause !== 'Deposit Slip' && String(rawCause).trim()) ? String(rawCause).trim() : (fallbackEntry?.cause || 'Account maintenance');
-      const type = (rawType && rawType !== 'Deposit Slip' && String(rawType).trim()) ? String(rawType).trim() : (fallbackEntry?.type || (debitAmt >= 50000 ? 'Withdraw' : 'Debit'));
+      const causeLower = cause.toLowerCase();
+      const rawTypeLower = String(rawType || '').toLowerCase().trim();
+
+      const isDeposit = rawTypeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit') || (fallbackEntry?.type === 'Deposit');
+      const isInterest = causeLower.includes('interest') || (fallbackEntry?.cause && fallbackEntry.cause.toLowerCase().includes('interest'));
+      const isCredit = isDeposit || rawTypeLower === 'credit' || isInterest || (fallbackEntry?.type === 'Credit');
+      const isWithdraw = rawTypeLower === 'withdraw' || (!isDeposit && !isCredit && (debitAmt >= 50000 || causeLower.includes('withdraw') || fallbackEntry?.type === 'Withdraw'));
+
+      let type = 'Debit';
+      if (isDeposit) {
+        type = 'Deposit';
+      } else if (isCredit) {
+        type = 'Credit';
+      } else if (isWithdraw) {
+        type = 'Withdraw';
+      }
+
       let rest = (rawRest !== undefined && rawRest !== null && !isNaN(parseFloat(rawRest))) ? parseFloat(rawRest) : (fallbackEntry?.balanceAfter || fallbackEntry?.rest || 0);
       const msg = (rawMsg && rawMsg !== '1' && typeof rawMsg === 'string' && rawMsg.trim()) ? rawMsg.trim() : (fallbackEntry?.message || '');
 
@@ -3624,10 +3665,17 @@ function renderBankLedgerTable() {
 
     entries.forEach(item => {
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
-      const isCredit = item.type === 'Credit' || (item.cause && item.cause.toLowerCase().includes('interest'));
-      const isWithdraw = item.type === 'Withdraw' || item.amount >= 50000;
-      const badgeClass = isCredit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+      const typeLower = (item.type || '').toLowerCase();
+      const causeLower = (item.cause || '').toLowerCase();
+      const msgLower = (item.message || '').toLowerCase();
+
+      const isDeposit = typeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit');
+      const isCredit = isDeposit || typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited');
+      const isWithdraw = typeLower === 'withdraw' || (!isDeposit && !isCredit && (item.amount >= 50000 || causeLower.includes('withdraw')));
+
+      const badgeText = isDeposit ? 'Deposit' : (isCredit ? 'Credit' : (isWithdraw ? 'Withdraw' : 'Debit'));
+      const badgeClass = isDeposit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' :
+                         isCredit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
                          isWithdraw ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                          'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
 
@@ -3639,9 +3687,9 @@ function renderBankLedgerTable() {
         <td class="py-2.5 px-3 text-slate-800 dark:text-slate-200 font-semibold">${item.dateFormatted || '-'}</td>
         <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">${item.cause || 'Maintenance'}</td>
         <td class="py-2.5 px-3 text-center">
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${item.type || 'Debit'}</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${badgeText}</span>
         </td>
-        <td class="py-2.5 px-3 text-right font-bold ${isCredit ? 'text-emerald-600' : isWithdraw ? 'text-blue-600' : 'text-rose-600'}">
+        <td class="py-2.5 px-3 text-right font-bold ${isCredit ? 'text-emerald-600 dark:text-emerald-400' : isWithdraw ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}">
           ${isCredit ? '+' : '-'}${formatDecimalCurrency(item.amount)}
         </td>
         <td class="py-2.5 px-3 text-right font-black text-slate-900 dark:text-slate-100 bg-amber-50/50 dark:bg-amber-950/20">${formatDecimalCurrency(balAfter)}</td>

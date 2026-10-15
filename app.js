@@ -15,6 +15,39 @@ const CONFIG = {
   STORAGE_KEY_OVERRIDES: 'al_ikhlas_status_overrides_v2',
   STORAGE_KEY_NEW_TXS: 'al_ikhlas_custom_txs_v2',
   STORAGE_KEY_LOGO: 'al_ikhlas_association_logo_v1',
+  STORAGE_KEY_SCHEDULE: 'al_ikhlas_share_schedule_v1',
+  STORAGE_KEY_BANK: 'al_ikhlas_bank_details_v1',
+};
+
+// 11-Year Official Financial Year Share & Extra Schedule (2025-2026 to 2035-2036)
+const DEFAULT_SHARE_SCHEDULE = [
+  { year: '2025-2026', shareValue: 2000.00, extraPerShare: 5000.00, notes: 'Initial Term Capital' },
+  { year: '2026-2027', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2027-2028', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2028-2029', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2029-2030', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2030-2031', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2031-2032', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2032-2033', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2033-2034', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2034-2035', shareValue: '', extraPerShare: '', notes: '' },
+  { year: '2035-2036', shareValue: '', extraPerShare: '', notes: '' }
+];
+
+// Official Association Mutual Trust Bank PLC (MTB) Details
+const DEFAULT_BANK_DETAILS = {
+  bankName: 'Mutual Trust Bank PLC',
+  shortName: 'MTB',
+  accountName: 'AL-IKHLAS ASSOCIATION',
+  accountNumber: '999101000351',
+  routingNumber: '145260123',
+  branch: 'Dhanmondi Branch, Dhaka',
+  accountType: 'Current / Association Account',
+  swiftCode: 'MTBLBDDH',
+  instructions: 'Deposits can be made via MTB Branch Slips, BEFTN, NPSB, RTGS, or Internet Banking. Please mention your Full Name & Month in deposit remarks.',
+  liquidBalance: 20562.41,
+  updatedAt: '15 Oct 2026',
+  updatedBy: 'Admin / President'
 };
 
 // Initial Default Users & Roles
@@ -32,6 +65,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19951234567890124',
     nomineeRelation: 'Spouse',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u2',
@@ -46,6 +82,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19962678901234568',
     nomineeRelation: 'Mother',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u3',
@@ -60,6 +99,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19943456789012346',
     nomineeRelation: 'Spouse',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u4',
@@ -74,6 +116,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19934567890123457',
     nomineeRelation: 'Brother',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u5',
@@ -88,6 +133,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19975678901234568',
     nomineeRelation: 'Father',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u6',
@@ -102,6 +150,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19956789012345679',
     nomineeRelation: 'Mother',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u7',
@@ -116,6 +167,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19967890123456780',
     nomineeRelation: 'Spouse',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u8',
@@ -130,6 +184,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19988901234567891',
     nomineeRelation: 'Father',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u9',
@@ -144,6 +201,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19949012345678902',
     nomineeRelation: 'Spouse',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   },
   {
     id: 'u10',
@@ -158,6 +218,9 @@ const DEFAULT_USERS = [
     nomineeName: 'Designated Nominee',
     nomineeNid: '19970123456789013',
     nomineeRelation: 'Brother',
+    membershipFrom: '2025-2026',
+    membershipTo: '2035-2036',
+    assignedShares: 15,
   }
 ];
 
@@ -180,6 +243,9 @@ let state = {
   isFetching: false,
   lastUpdated: null,
   associationLogo: null,
+  shareSchedule: [],
+  bankDetails: { ...DEFAULT_BANK_DETAILS },
+  adminSubView: 'directory', // 'directory' | 'profile'
   treasury: {
     totalDeposited: 324000,
     totalWithdrawn: 300000,
@@ -454,17 +520,504 @@ function handleRemoveLogo() {
   }
 }
 
+// ============================================================================
+// OFFICIAL ASSOCIATION BANK ACCOUNT ENGINE (MUTUAL TRUST BANK PLC)
+// ============================================================================
+
+function initBankDetails() {
+  const stored = localStorage.getItem(CONFIG.STORAGE_KEY_BANK);
+  if (stored) {
+    try {
+      state.bankDetails = Object.assign({}, DEFAULT_BANK_DETAILS, JSON.parse(stored));
+    } catch (e) {
+      state.bankDetails = { ...DEFAULT_BANK_DETAILS };
+    }
+  } else {
+    state.bankDetails = { ...DEFAULT_BANK_DETAILS };
+  }
+}
+
+function openBankDetailsModal() {
+  initBankDetails();
+  renderBankDetailsModalContent();
+  const modal = document.getElementById('modal-bank-details');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.scrollTop = 0;
+  }
+}
+
+function closeBankDetailsModal() {
+  const modal = document.getElementById('modal-bank-details');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function renderBankDetailsModalContent() {
+  const viewContainer = document.getElementById('bank-details-view-mode');
+  const footerContainer = document.getElementById('bank-details-modal-footer');
+  const editForm = document.getElementById('bank-details-edit-form');
+  if (!viewContainer) return;
+
+  if (editForm) editForm.classList.add('hidden');
+  viewContainer.classList.remove('hidden');
+
+  const b = state.bankDetails || DEFAULT_BANK_DETAILS;
+  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 20562.41;
+  const canEdit = canEditBankDetails();
+
+  viewContainer.innerHTML = `
+    <!-- Top Branded MTB Bank Card -->
+    <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-tr from-emerald-900 via-brand-900 to-emerald-800 text-white shadow-xl relative overflow-hidden border border-emerald-500/30">
+      <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="flex items-center justify-between pb-3 border-b border-emerald-600/40 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-white text-emerald-800 flex items-center justify-center font-black text-sm shadow">
+            MTB
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-wider text-emerald-200 font-bold leading-tight">${b.bankName}</div>
+            <div class="text-[10px] text-emerald-300 font-mono">${b.branch}</div>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-pulse"></span>
+          <span>Verified Account</span>
+        </span>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-emerald-300/80 tracking-wider block">Account Title</span>
+          <div class="text-base sm:text-lg font-black tracking-tight text-white mt-0.5">${b.accountName}</div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-emerald-600/30">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-emerald-300/80 tracking-wider block">Account Number</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-base sm:text-lg font-black font-mono tracking-widest text-gold-300">${b.accountNumber}</span>
+              <button type="button" onclick="copyToClipboard('${b.accountNumber}')" class="px-2 py-0.5 rounded-md bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold transition flex items-center gap-1" title="Copy Account Number">
+                <i class="fa-regular fa-copy text-[10px]"></i> Copy
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <span class="text-[10px] uppercase font-bold text-emerald-300/80 tracking-wider block">Routing Number</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-base font-black font-mono tracking-wider text-white">${b.routingNumber}</span>
+              <button type="button" onclick="copyToClipboard('${b.routingNumber}')" class="px-2 py-0.5 rounded-md bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold transition flex items-center gap-1" title="Copy Routing Number">
+                <i class="fa-regular fa-copy text-[10px]"></i> Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary Banking Details & Metadata Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+      <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Account Type</span>
+        <span class="font-bold text-slate-800 dark:text-slate-100 block mt-0.5 truncate">${b.accountType}</span>
+      </div>
+      <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">SWIFT Code</span>
+        <span class="font-mono font-bold text-slate-800 dark:text-slate-100 block mt-0.5">${b.swiftCode || 'MTBLBDDH'}</span>
+      </div>
+      <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 col-span-2 sm:col-span-1">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Current Liquid Balance</span>
+        <span class="font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">${formatCurrency(currentBalance)}</span>
+      </div>
+    </div>
+
+    <!-- Deposit Instructions Notice -->
+    <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 flex items-start gap-3">
+      <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5 text-xs">
+        <i class="fa-solid fa-circle-info"></i>
+      </div>
+      <div class="text-xs">
+        <div class="font-bold text-amber-900 dark:text-amber-200">Deposit &amp; Transfer Guidelines</div>
+        <p class="text-amber-800 dark:text-amber-300 mt-0.5 leading-relaxed">
+          ${b.instructions || 'Deposits can be made via MTB Branch Slips, BEFTN, NPSB, RTGS, or Internet Banking. Please mention your Full Name & Month in deposit remarks.'}
+        </p>
+      </div>
+    </div>
+
+    <!-- Official Ledger Verification Badge -->
+    <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
+      <span class="flex items-center gap-1">
+        <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+        <span>Bank A/C Verified &amp; Audited</span>
+      </span>
+      <span>Updated by: <strong class="text-slate-600 dark:text-slate-300">${b.updatedBy || 'Admin'}</strong></span>
+    </div>
+  `;
+
+  if (footerContainer) {
+    if (canEdit) {
+      footerContainer.innerHTML = `
+        <button type="button" onclick="closeBankDetailsModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-xmark text-xs"></i>
+          <span>Close</span>
+        </button>
+        <button type="button" onclick="toggleBankDetailsEditMode(true)" class="px-4 py-2 rounded-xl text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-user-pen text-xs"></i>
+          <span>Edit Bank Details</span>
+        </button>
+      `;
+    } else {
+      footerContainer.innerHTML = `
+        <button type="button" onclick="closeBankDetailsModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-xmark text-xs"></i>
+          <span>Close</span>
+        </button>
+        <div class="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+          <i class="fa-solid fa-lock text-amber-500"></i>
+          <span>Editing restricted to President &amp; Accountant</span>
+        </div>
+      `;
+    }
+  }
+}
+
+function toggleBankDetailsEditMode(isEditing) {
+  if (isEditing && !canEditBankDetails()) {
+    showToast('Permission denied. Only President & Accountant can edit bank details.', 'error');
+    return;
+  }
+
+  const viewContainer = document.getElementById('bank-details-view-mode');
+  const editForm = document.getElementById('bank-details-edit-form');
+  const footerContainer = document.getElementById('bank-details-modal-footer');
+
+  if (isEditing) {
+    if (viewContainer) viewContainer.classList.add('hidden');
+    if (editForm) {
+      editForm.classList.remove('hidden');
+      const b = state.bankDetails || DEFAULT_BANK_DETAILS;
+      document.getElementById('bank-form-bank-name').value = b.bankName || '';
+      document.getElementById('bank-form-account-name').value = b.accountName || '';
+      document.getElementById('bank-form-account-number').value = b.accountNumber || '';
+      document.getElementById('bank-form-routing-number').value = b.routingNumber || '';
+      document.getElementById('bank-form-branch').value = b.branch || '';
+      document.getElementById('bank-form-account-type').value = b.accountType || '';
+      document.getElementById('bank-form-swift').value = b.swiftCode || '';
+      document.getElementById('bank-form-instructions').value = b.instructions || '';
+    }
+    if (footerContainer) {
+      footerContainer.innerHTML = `
+        <button type="button" onclick="toggleBankDetailsEditMode(false)" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
+          Back to View Mode
+        </button>
+        <span class="text-xs text-slate-400 font-medium">Review &amp; click "Save Bank Details" above</span>
+      `;
+    }
+  } else {
+    renderBankDetailsModalContent();
+  }
+}
+
+function handleSaveBankDetails(e) {
+  if (e) e.preventDefault();
+  if (!canEditBankDetails()) {
+    showToast('Permission denied. Only President & Accountant can edit bank details.', 'error');
+    return;
+  }
+
+  const bankName = document.getElementById('bank-form-bank-name').value.trim();
+  const accountName = document.getElementById('bank-form-account-name').value.trim();
+  const accountNumber = document.getElementById('bank-form-account-number').value.trim();
+  const routingNumber = document.getElementById('bank-form-routing-number').value.trim();
+  const branch = document.getElementById('bank-form-branch').value.trim();
+  const accountType = document.getElementById('bank-form-account-type').value.trim();
+  const swiftCode = document.getElementById('bank-form-swift').value.trim();
+  const instructions = document.getElementById('bank-form-instructions').value.trim();
+
+  state.bankDetails = {
+    ...state.bankDetails,
+    bankName: bankName || DEFAULT_BANK_DETAILS.bankName,
+    accountName: accountName || DEFAULT_BANK_DETAILS.accountName,
+    accountNumber: accountNumber || DEFAULT_BANK_DETAILS.accountNumber,
+    routingNumber: routingNumber || DEFAULT_BANK_DETAILS.routingNumber,
+    branch: branch || DEFAULT_BANK_DETAILS.branch,
+    accountType: accountType || DEFAULT_BANK_DETAILS.accountType,
+    swiftCode: swiftCode || DEFAULT_BANK_DETAILS.swiftCode,
+    instructions: instructions || DEFAULT_BANK_DETAILS.instructions,
+    updatedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    updatedBy: state.currentUser ? `${state.currentUser.name} (${state.currentUser.role})` : 'President'
+  };
+
+  localStorage.setItem(CONFIG.STORAGE_KEY_BANK, JSON.stringify(state.bankDetails));
+  toggleBankDetailsEditMode(false);
+  renderTreasuryCards();
+  if (!isAdmin() || state.adminSubView === 'profile') {
+    renderMemberPersonalView();
+  }
+  showToast('Bank details updated successfully.', 'success');
+}
+
+// ============================================================================
+// 11-YEAR FINANCIAL YEAR SHARE & EXTRA SCHEDULE ENGINE (2025–2036)
+// ============================================================================
+
+function initShareSchedule() {
+  const stored = localStorage.getItem(CONFIG.STORAGE_KEY_SCHEDULE);
+  if (stored) {
+    try {
+      state.shareSchedule = JSON.parse(stored);
+      if (!Array.isArray(state.shareSchedule) || state.shareSchedule.length === 0) {
+        state.shareSchedule = JSON.parse(JSON.stringify(DEFAULT_SHARE_SCHEDULE));
+      }
+    } catch (e) {
+      state.shareSchedule = JSON.parse(JSON.stringify(DEFAULT_SHARE_SCHEDULE));
+    }
+  } else {
+    state.shareSchedule = JSON.parse(JSON.stringify(DEFAULT_SHARE_SCHEDULE));
+  }
+}
+
+function openShareScheduleModal() {
+  initShareSchedule();
+  renderShareScheduleModalContent(false);
+  const modal = document.getElementById('modal-share-schedule');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.scrollTop = 0;
+  }
+}
+
+function closeShareScheduleModal() {
+  const modal = document.getElementById('modal-share-schedule');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function renderShareScheduleModalContent(isEditing = false) {
+  const container = document.getElementById('share-schedule-container');
+  const footerContainer = document.getElementById('share-schedule-modal-footer');
+  if (!container) return;
+
+  const schedule = state.shareSchedule && state.shareSchedule.length > 0 ? state.shareSchedule : DEFAULT_SHARE_SCHEDULE;
+  const canEdit = canEditShareSchedule();
+
+  if (isEditing && canEdit) {
+    // EDIT MODE TABLE FOR ADMIN & ACCOUNTANT
+    let rowsHtml = schedule.map((row, idx) => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+        <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">
+          <input type="text" value="${row.year}" id="sched-year-${idx}" class="w-full bg-white dark:bg-slate-800 text-xs rounded-lg px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </td>
+        <td class="py-2.5 px-3">
+          <input type="number" step="0.01" value="${row.shareValue !== '' && row.shareValue !== null ? row.shareValue : ''}" placeholder="e.g. 2000.00" id="sched-val-${idx}" class="w-full bg-white dark:bg-slate-800 text-xs rounded-lg px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 text-right font-extrabold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </td>
+        <td class="py-2.5 px-3">
+          <input type="number" step="0.01" value="${row.extraPerShare !== '' && row.extraPerShare !== null ? row.extraPerShare : ''}" placeholder="e.g. 5000.00" id="sched-extra-${idx}" class="w-full bg-white dark:bg-slate-800 text-xs rounded-lg px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 text-right font-extrabold text-purple-700 dark:text-purple-400 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </td>
+      </tr>
+    `).join('');
+
+    container.innerHTML = `
+      <form id="share-schedule-edit-form" onsubmit="handleSaveShareSchedule(event)" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <i class="fa-solid fa-pen-to-square text-amber-600 mr-1"></i> Edit Financial Year Schedule Values
+          </span>
+          <button type="button" onclick="resetShareScheduleToDefault()" class="text-xs text-rose-500 hover:underline font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-rotate-left text-[10px]"></i> Reset to Defaults
+          </button>
+        </div>
+
+        <div class="border-2 border-slate-900 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead class="bg-slate-100 dark:bg-slate-800 border-b-2 border-slate-900 dark:border-slate-700 font-black text-slate-900 dark:text-white uppercase text-[11px]">
+              <tr>
+                <th class="py-3 px-3 w-1/3">Financial Year</th>
+                <th class="py-3 px-3 w-1/3 text-right">Share Value (৳)</th>
+                <th class="py-3 px-3 w-1/3 text-right">Extra Amount Per Share (৳)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="renderShareScheduleModalContent(false)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white shadow-md transition flex items-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk text-xs"></i>
+            <span>Save Schedule</span>
+          </button>
+        </div>
+      </form>
+    `;
+
+    if (footerContainer) {
+      footerContainer.innerHTML = `
+        <button type="button" onclick="closeShareScheduleModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
+          Close
+        </button>
+        <span class="text-xs text-slate-400 font-medium">Click "Save Schedule" above when done</span>
+      `;
+    }
+
+  } else {
+    // VIEW MODE: EXACT REPLICA OF USER ATTACHED IMAGE TABLE
+    let rowsHtml = schedule.map((row) => {
+      const formattedShareVal = (row.shareValue !== '' && row.shareValue !== null && !isNaN(row.shareValue)) ?
+        Number(row.shareValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+      const formattedExtraVal = (row.extraPerShare !== '' && row.extraPerShare !== null && !isNaN(row.extraPerShare)) ?
+        Number(row.extraPerShare).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+
+      return `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+          <td class="py-2.5 px-4 font-bold text-slate-900 dark:text-white border-r border-slate-900 dark:border-slate-700 text-center">
+            ${row.year}
+          </td>
+          <td class="py-2.5 px-4 font-black text-center border-r border-slate-900 dark:border-slate-700 text-slate-900 dark:text-slate-100">
+            ${formattedShareVal ? formattedShareVal : '&nbsp;'}
+          </td>
+          <td class="py-2.5 px-4 font-black text-center text-slate-900 dark:text-slate-100">
+            ${formattedExtraVal ? formattedExtraVal : '&nbsp;'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="space-y-3">
+        <!-- Replicated High-Contrast Table as in User Uploaded Photo -->
+        <div class="border-[2px] border-slate-900 dark:border-slate-600 rounded-xl overflow-hidden shadow-md">
+          <table class="w-full text-center text-xs border-collapse">
+            <thead class="bg-slate-50 dark:bg-slate-800/90 border-b-[2px] border-slate-900 dark:border-slate-600">
+              <tr>
+                <th class="py-3 px-4 font-extrabold text-slate-900 dark:text-white border-r border-slate-900 dark:border-slate-600 text-center uppercase tracking-wider text-xs">
+                  Financial Year
+                </th>
+                <th class="py-3 px-4 font-extrabold text-slate-900 dark:text-white border-r border-slate-900 dark:border-slate-600 text-center uppercase tracking-wider text-xs">
+                  Share Value
+                </th>
+                <th class="py-3 px-4 font-extrabold text-slate-900 dark:text-white text-center uppercase tracking-wider text-xs">
+                  Extra Amount Per Share
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y border-t border-slate-900 dark:border-slate-700 divide-slate-900 dark:divide-slate-700">
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-calendar-check text-amber-600"></i>
+            <span>Current Active Financial Year: <strong>2025–2026</strong> (Share Value: ৳2,000.00 • Extra: ৳5,000.00)</span>
+          </div>
+          <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-200/60 dark:bg-amber-900/80 px-2 py-0.5 rounded">
+            11-Year Schedule
+          </span>
+        </div>
+      </div>
+    `;
+
+    if (footerContainer) {
+      if (canEdit) {
+        footerContainer.innerHTML = `
+          <button type="button" onclick="closeShareScheduleModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-xmark text-xs"></i>
+            <span>Close</span>
+          </button>
+          <button type="button" onclick="renderShareScheduleModalContent(true)" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-pen-to-square text-xs"></i>
+            <span>Edit Schedule Values</span>
+          </button>
+        `;
+      } else {
+        footerContainer.innerHTML = `
+          <button type="button" onclick="closeShareScheduleModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-xmark text-xs"></i>
+            <span>Close</span>
+          </button>
+          <div class="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+            <i class="fa-solid fa-lock text-amber-500"></i>
+            <span>Schedule editing restricted to President &amp; Accountant</span>
+          </div>
+        `;
+      }
+    }
+  }
+}
+
+function handleSaveShareSchedule(e) {
+  if (e) e.preventDefault();
+  if (!canEditShareSchedule()) {
+    showToast('Permission denied. Admin/Accountant only.', 'error');
+    return;
+  }
+
+  const schedule = state.shareSchedule && state.shareSchedule.length > 0 ? state.shareSchedule : DEFAULT_SHARE_SCHEDULE;
+  const updated = schedule.map((row, idx) => {
+    const yearEl = document.getElementById(`sched-year-${idx}`);
+    const valEl = document.getElementById(`sched-val-${idx}`);
+    const extraEl = document.getElementById(`sched-extra-${idx}`);
+
+    const yearVal = yearEl ? yearEl.value.trim() : row.year;
+    const shareVal = valEl && valEl.value !== '' ? parseFloat(valEl.value) : '';
+    const extraVal = extraEl && extraEl.value !== '' ? parseFloat(extraEl.value) : '';
+
+    return {
+      year: yearVal || row.year,
+      shareValue: isNaN(shareVal) ? '' : shareVal,
+      extraPerShare: isNaN(extraVal) ? '' : extraVal,
+      notes: row.notes || ''
+    };
+  });
+
+  state.shareSchedule = updated;
+  localStorage.setItem(CONFIG.STORAGE_KEY_SCHEDULE, JSON.stringify(updated));
+  renderShareScheduleModalContent(false);
+  if (!isAdmin() || state.adminSubView === 'profile') {
+    renderMemberPersonalView();
+  }
+  showToast('Financial Year Share Schedule updated successfully.', 'success');
+}
+
+function resetShareScheduleToDefault() {
+  if (!canEditShareSchedule()) {
+    showToast('Permission denied. Admin/Accountant only.', 'error');
+    return;
+  }
+  if (confirm('Reset 11-Year Schedule back to default values?')) {
+    state.shareSchedule = JSON.parse(JSON.stringify(DEFAULT_SHARE_SCHEDULE));
+    localStorage.removeItem(CONFIG.STORAGE_KEY_SCHEDULE);
+    renderShareScheduleModalContent(true);
+    showToast('Schedule reset to default roadmap.', 'info');
+  }
+}
+
 // User & Auth Engine
 function initUsersAndAuth() {
-  // Load official Association Logo
+  // Load official Association Logo, Bank Details, and Share Schedule
   initLogo();
+  initBankDetails();
+  initShareSchedule();
 
   // Load users from storage or use defaults
   const storedUsers = localStorage.getItem(CONFIG.STORAGE_KEY_USERS);
   if (storedUsers) {
     try {
       state.users = JSON.parse(storedUsers);
-      // Ensure all users have sheetName, avatar, nid, and nominee properties mapped
+      // Ensure all users have sheetName, avatar, nid, nominee, membershipFrom, membershipTo, assignedShares
       state.users.forEach(u => {
         const def = DEFAULT_USERS.find(d => d.id === u.id || d.email.toLowerCase() === u.email.toLowerCase());
         if (!u.sheetName) {
@@ -475,6 +1028,9 @@ function initUsersAndAuth() {
         if (typeof u.nomineeName === 'undefined' || !u.nomineeName) u.nomineeName = def ? def.nomineeName : '';
         if (typeof u.nomineeNid === 'undefined' || !u.nomineeNid) u.nomineeNid = def ? def.nomineeNid : '';
         if (typeof u.nomineeRelation === 'undefined' || !u.nomineeRelation) u.nomineeRelation = def ? def.nomineeRelation : '';
+        if (typeof u.membershipFrom === 'undefined' || !u.membershipFrom) u.membershipFrom = def ? def.membershipFrom : '2025-2026';
+        if (typeof u.membershipTo === 'undefined' || !u.membershipTo) u.membershipTo = def ? def.membershipTo : '2035-2036';
+        if (typeof u.assignedShares === 'undefined' || !u.assignedShares) u.assignedShares = def ? def.assignedShares : 15;
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     } catch (e) {
@@ -499,6 +1055,9 @@ function initUsersAndAuth() {
         state.currentUser.nomineeName = matched.nomineeName || '';
         state.currentUser.nomineeNid = matched.nomineeNid || '';
         state.currentUser.nomineeRelation = matched.nomineeRelation || '';
+        state.currentUser.membershipFrom = matched.membershipFrom || '2025-2026';
+        state.currentUser.membershipTo = matched.membershipTo || '2035-2036';
+        state.currentUser.assignedShares = matched.assignedShares || 15;
       }
       showView('dashboard');
       if (!isAdmin()) {
@@ -531,6 +1090,53 @@ function canManageUsers() {
 function canApprovePayments() {
   if (!state.currentUser) return false;
   return ['President', 'Accountant', 'Cashier'].includes(state.currentUser.role);
+}
+
+function canEditBankDetails() {
+  if (!state.currentUser) return false;
+  return isAdmin() || state.currentUser.role === 'Accountant';
+}
+
+function canEditShareSchedule() {
+  if (!state.currentUser) return false;
+  return isAdmin() || state.currentUser.role === 'Accountant';
+}
+
+// Subview switcher for Admin (Directory vs Personal Profile & Statement)
+function setAdminSubView(view) {
+  state.adminSubView = view;
+  const adminDirView = document.getElementById('admin-directory-view');
+  const memberPersonalView = document.getElementById('member-personal-view');
+  const btnDir = document.getElementById('btn-subview-directory');
+  const btnProf = document.getElementById('btn-subview-profile');
+
+  if (view === 'profile') {
+    if (adminDirView) adminDirView.classList.add('hidden');
+    if (memberPersonalView) memberPersonalView.classList.remove('hidden');
+    if (btnProf) {
+      btnProf.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm';
+    }
+    if (btnDir) {
+      btnDir.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+    }
+    renderMemberPersonalView();
+  } else {
+    // 'directory'
+    if (memberPersonalView) memberPersonalView.classList.add('hidden');
+    if (adminDirView) adminDirView.classList.remove('hidden');
+    if (btnDir) {
+      btnDir.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm';
+    }
+    if (btnProf) {
+      btnProf.className = 'px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+    }
+    renderMembersGrid();
+  }
+}
+
+function openAdminMyProfile() {
+  switchTab('members');
+  setAdminSubView('profile');
 }
 
 // Helper: Match current user with member statement data in spreadsheet
@@ -598,8 +1204,7 @@ function updateDashboardForRole() {
   const isSuperAdmin = isAdmin();
   const adminBanner = document.getElementById('admin-banner');
   const adminTabBtn = document.getElementById('tab-btn-admin-panel');
-  const adminDirView = document.getElementById('admin-directory-view');
-  const memberPersonalView = document.getElementById('member-personal-view');
+  const adminSubNav = document.getElementById('admin-subview-nav');
   const chartRankingCard = document.getElementById('chart-card-ranking');
   const tabTitleAnalytics = document.getElementById('tab-title-analytics');
   const tabTitleMembers = document.getElementById('tab-title-members');
@@ -613,11 +1218,10 @@ function updateDashboardForRole() {
     
     if (adminTabBtn) adminTabBtn.classList.remove('hidden');
     if (adminBanner) adminBanner.classList.remove('hidden');
-    if (adminDirView) adminDirView.classList.remove('hidden');
-    if (memberPersonalView) memberPersonalView.classList.add('hidden');
+    if (adminSubNav) adminSubNav.classList.remove('hidden');
     if (chartRankingCard) chartRankingCard.classList.remove('hidden');
     
-    renderMembersGrid();
+    setAdminSubView(state.adminSubView || 'directory');
     renderPendingQueue();
     renderAdminUsersTable();
   } else {
@@ -629,6 +1233,10 @@ function updateDashboardForRole() {
     
     if (adminTabBtn) adminTabBtn.classList.add('hidden');
     if (adminBanner) adminBanner.classList.add('hidden');
+    if (adminSubNav) adminSubNav.classList.add('hidden');
+
+    const adminDirView = document.getElementById('admin-directory-view');
+    const memberPersonalView = document.getElementById('member-personal-view');
     if (adminDirView) adminDirView.classList.add('hidden');
     if (memberPersonalView) memberPersonalView.classList.remove('hidden');
     if (chartRankingCard) chartRankingCard.classList.add('hidden'); // Privacy: Hide other members ranking
@@ -925,6 +1533,94 @@ function renderMemberPersonalView() {
       </div>
     </div>
 
+    <!-- 1C. MEMBERSHIP FINANCIAL YEAR TENURE, SUBSCRIBED SHARES, BANK DETAILS & SCHEDULE CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Card A: Membership Tenure & Shares -->
+      <div class="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Membership Tenure</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">11-Year Term</span>
+          </div>
+          <div class="mt-3">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Financial Years</span>
+            <div class="text-base font-extrabold text-slate-900 dark:text-white mt-0.5">
+              ${state.currentUser.membershipFrom || '2025-2026'} → ${state.currentUser.membershipTo || '2035-2036'}
+            </div>
+            <div class="mt-2 text-xs text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span>Subscribed Capital:</span>
+              <strong class="text-brand-700 dark:text-brand-400 font-extrabold">${state.currentUser.assignedShares || 15} Subscribed Shares</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card B: Official MTB Bank Account Card -->
+      <div class="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-building-columns"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Bank Details</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">MTB</span>
+          </div>
+          <div class="mt-3">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Mutual Trust Bank PLC</span>
+            <div class="text-base font-mono font-black text-emerald-700 dark:text-emerald-400 mt-0.5 flex items-center gap-2">
+              <span>${state.bankDetails.accountNumber}</span>
+              <button type="button" onclick="copyToClipboard('${state.bankDetails.accountNumber}')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs" title="Copy Account Number">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span>Routing: <strong class="font-mono text-slate-700 dark:text-slate-300">${state.bankDetails.routingNumber}</strong></span>
+              <button type="button" onclick="openBankDetailsModal()" class="text-emerald-600 hover:underline font-bold text-[11px] flex items-center gap-1">
+                <span>View Full Info</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card C: Financial Year Share & Extra Schedule Card -->
+      <div class="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-calendar-days"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">FY Share Schedule</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">2025–2036</span>
+          </div>
+          <div class="mt-3">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">FY 2025–2026 Rates</span>
+            <div class="text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-0.5 flex items-center justify-between">
+              <span>Share: <strong class="text-emerald-600">৳2,000</strong></span>
+              <span>Extra: <strong class="text-purple-600">৳5,000</strong></span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span>11-Year Roadmap</span>
+              <button type="button" onclick="openShareScheduleModal()" class="text-amber-600 hover:underline font-bold text-[11px] flex items-center gap-1">
+                <span>View Schedule</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 2. FOUR FINANCIAL SUMMARY CARDS FOR THIS MEMBER -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       
@@ -1066,6 +1762,15 @@ function openMemberProfileModal() {
   if (nomineeNameInput) nomineeNameInput.value = state.currentUser.nomineeName || '';
   if (nomineeRelationInput) nomineeRelationInput.value = state.currentUser.nomineeRelation || '';
   if (nomineeNidInput) nomineeNidInput.value = state.currentUser.nomineeNid || '';
+
+  const tenureDisplay = document.getElementById('member-profile-tenure-display');
+  const sharesDisplay = document.getElementById('member-profile-shares-display');
+  if (tenureDisplay) {
+    tenureDisplay.textContent = `${state.currentUser.membershipFrom || '2025-2026'} → ${state.currentUser.membershipTo || '2035-2036'}`;
+  }
+  if (sharesDisplay) {
+    sharesDisplay.textContent = `${state.currentUser.assignedShares || 15} Shares`;
+  }
 
   tempProfileAvatar = state.currentUser.avatar || null;
   updateModalAvatarPreview();
@@ -1262,6 +1967,13 @@ function renderAdminUsersTable() {
         <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${roleBadge}">
           ${u.role}
         </span>
+        <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+          <i class="fa-solid fa-calendar-range text-[9px]"></i>
+          <span>${u.membershipFrom || '2025-2026'} - ${u.membershipTo || '2035-2036'}</span>
+        </div>
+        <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+          ${u.assignedShares || 15} Shares Subscribed
+        </div>
       </td>
       <td class="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300">
         ${u.nid ? `<span class="font-bold text-slate-800 dark:text-slate-100">${u.nid}</span>` : '<span class="text-slate-400 italic font-sans text-xs">Not set</span>'}
@@ -1356,6 +2068,10 @@ function openAddUserModal(userId = null) {
   const photoInput = document.getElementById('admin-user-photo-input');
   if (photoInput) photoInput.value = '';
 
+  const mFromEl = document.getElementById('form-user-membership-from');
+  const mToEl = document.getElementById('form-user-membership-to');
+  const sharesEl = document.getElementById('form-user-shares');
+
   if (userId) {
     const user = state.users.find(u => u.id === userId);
     if (user) {
@@ -1370,6 +2086,9 @@ function openAddUserModal(userId = null) {
       document.getElementById('form-user-nominee-name').value = user.nomineeName || '';
       document.getElementById('form-user-nominee-relation').value = user.nomineeRelation || '';
       document.getElementById('form-user-nominee-nid').value = user.nomineeNid || '';
+      if (mFromEl) mFromEl.value = user.membershipFrom || '2025-2026';
+      if (mToEl) mToEl.value = user.membershipTo || '2035-2036';
+      if (sharesEl) sharesEl.value = user.assignedShares || 15;
       tempAdminUserAvatar = user.avatar || null;
     }
   } else {
@@ -1379,6 +2098,9 @@ function openAddUserModal(userId = null) {
     document.getElementById('form-user-nominee-name').value = '';
     document.getElementById('form-user-nominee-relation').value = '';
     document.getElementById('form-user-nominee-nid').value = '';
+    if (mFromEl) mFromEl.value = '2025-2026';
+    if (mToEl) mToEl.value = '2035-2036';
+    if (sharesEl) sharesEl.value = 15;
     tempAdminUserAvatar = null;
   }
 
@@ -1429,6 +2151,9 @@ function handleUserSubmit(e) {
   const nomineeName = document.getElementById('form-user-nominee-name').value.trim();
   const nomineeRelation = document.getElementById('form-user-nominee-relation').value;
   const nomineeNid = document.getElementById('form-user-nominee-nid').value.trim();
+  const membershipFrom = document.getElementById('form-user-membership-from')?.value || '2025-2026';
+  const membershipTo = document.getElementById('form-user-membership-to')?.value || '2035-2036';
+  const assignedShares = parseInt(document.getElementById('form-user-shares')?.value || '15', 10);
 
   if (id) {
     // Update existing
@@ -1442,6 +2167,9 @@ function handleUserSubmit(e) {
       u.nomineeName = nomineeName;
       u.nomineeRelation = nomineeRelation;
       u.nomineeNid = nomineeNid;
+      u.membershipFrom = membershipFrom;
+      u.membershipTo = membershipTo;
+      u.assignedShares = assignedShares;
       if (tempAdminUserAvatar !== null) {
         u.avatar = tempAdminUserAvatar ? tempAdminUserAvatar : null;
       }
@@ -1457,6 +2185,9 @@ function handleUserSubmit(e) {
         state.currentUser.nomineeName = u.nomineeName;
         state.currentUser.nomineeRelation = u.nomineeRelation;
         state.currentUser.nomineeNid = u.nomineeNid;
+        state.currentUser.membershipFrom = u.membershipFrom;
+        state.currentUser.membershipTo = u.membershipTo;
+        state.currentUser.assignedShares = u.assignedShares;
         localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
       }
     }
@@ -1473,7 +2204,10 @@ function handleUserSubmit(e) {
       nid,
       nomineeName,
       nomineeRelation,
-      nomineeNid
+      nomineeNid,
+      membershipFrom,
+      membershipTo,
+      assignedShares
     });
   }
 
@@ -1533,13 +2267,19 @@ function renderPendingQueue() {}
 
 // Add Transaction Modal Logic
 function openAddTransactionModal() {
+  const modal = document.getElementById('modal-add-tx');
+  const select = document.getElementById('form-tx-member');
+  if (!modal || !select) {
+    showToast('Direct manual transaction entry is disabled.', 'info');
+    return;
+  }
+
   if (!canApprovePayments()) {
     showToast('Only President or Accountant can record deposits.', 'error');
     openLoginModal();
     return;
   }
 
-  const select = document.getElementById('form-tx-member');
   select.innerHTML = '';
   const sortedNames = Array.from(state.membersMap.keys()).sort();
   sortedNames.forEach(name => {
@@ -1549,18 +2289,25 @@ function openAddTransactionModal() {
     select.appendChild(opt);
   });
 
-  document.getElementById('form-tx-date').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('form-tx-shares').value = 1;
-  document.getElementById('form-tx-amount').value = 2000;
-  document.getElementById('form-tx-trx').value = 'Deposit Slip Book';
+  const dateEl = document.getElementById('form-tx-date');
+  const sharesEl = document.getElementById('form-tx-shares');
+  const amtEl = document.getElementById('form-tx-amount');
+  const trxEl = document.getElementById('form-tx-trx');
+  if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
+  if (sharesEl) sharesEl.value = 1;
+  if (amtEl) amtEl.value = 2000;
+  if (trxEl) trxEl.value = 'Deposit Slip Book';
 
-  document.getElementById('modal-add-tx').classList.remove('hidden');
-  document.getElementById('modal-add-tx').classList.add('flex');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
 }
 
 function closeAddTransactionModal() {
-  document.getElementById('modal-add-tx').classList.add('hidden');
-  document.getElementById('modal-add-tx').classList.remove('flex');
+  const modal = document.getElementById('modal-add-tx');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
 }
 
 function handleFormTxTypeChange() {
@@ -2835,6 +3582,8 @@ function renderMembersGrid() {
     const userNid = assignedUser ? assignedUser.nid : '';
     const userNominee = assignedUser ? assignedUser.nomineeName : '';
     const userNomineeRel = assignedUser ? assignedUser.nomineeRelation : '';
+    const userTenure = `${assignedUser?.membershipFrom || '2025-2026'} → ${assignedUser?.membershipTo || '2035-2036'}`;
+    const userShares = assignedUser?.assignedShares || 15;
 
     card.innerHTML = `
       <div>
@@ -2878,7 +3627,7 @@ function renderMembersGrid() {
           ${hasPending ? `<span class="text-rose-500 font-bold">Pending: ${formatCurrency(m.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
         </div>
 
-        <!-- Identification & Nominee Summary Badges -->
+        <!-- Identification, Nominee & Membership Tenure Badges -->
         <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
           <div class="flex items-center justify-between">
             <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-id-card text-[10px]"></i> Own NID:</span>
@@ -2887,6 +3636,14 @@ function renderMembersGrid() {
           <div class="flex items-center justify-between">
             <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-user-shield text-[10px]"></i> Nominee:</span>
             <span class="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">${userNominee ? `${userNominee} ${userNomineeRel ? '(' + userNomineeRel + ')' : ''}` : '<span class="text-slate-400 font-normal italic">None</span>'}</span>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60">
+            <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-calendar-check text-[10px] text-emerald-600"></i> Tenure:</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300">${userTenure}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-layer-group text-[10px] text-amber-600"></i> Subscribed:</span>
+            <span class="font-extrabold text-brand-700 dark:text-brand-300">${userShares} Shares</span>
           </div>
         </div>
       </div>
@@ -2943,6 +3700,9 @@ function openMemberStatement(memberName) {
   // NID & Nominee fields
   const nidEl = document.getElementById('modal-member-nid');
   const nomineeEl = document.getElementById('modal-member-nominee');
+  const tenureEl = document.getElementById('modal-member-tenure');
+  const subscribedSharesEl = document.getElementById('modal-member-subscribed-shares');
+
   if (nidEl) {
     nidEl.textContent = (assignedUser && assignedUser.nid) ? assignedUser.nid : 'Not Recorded';
   }
@@ -2954,6 +3714,15 @@ function openMemberStatement(memberName) {
     } else {
       nomineeEl.textContent = 'None Recorded';
     }
+  }
+  if (tenureEl) {
+    const fromYear = assignedUser && assignedUser.membershipFrom ? assignedUser.membershipFrom : '2025-2026';
+    const toYear = assignedUser && assignedUser.membershipTo ? assignedUser.membershipTo : '2035-2036';
+    tenureEl.textContent = `${fromYear} to ${toYear}`;
+  }
+  if (subscribedSharesEl) {
+    const sh = assignedUser && assignedUser.assignedShares ? assignedUser.assignedShares : 15;
+    subscribedSharesEl.textContent = `${sh} Shares`;
   }
 
   const tbody = document.getElementById('modal-statement-body');
@@ -3335,7 +4104,7 @@ function switchTab(tabName) {
     populateApiSettingsForm();
   } else if (tabName === 'members') {
     if (isAdmin()) {
-      renderMembersGrid();
+      setAdminSubView(state.adminSubView || 'directory');
     } else {
       renderMemberPersonalView();
     }
@@ -3453,3 +4222,14 @@ window.togglePasswordVisibility = togglePasswordVisibility;
 window.switchTab = switchTab;
 window.toggleTheme = toggleTheme;
 window.copyToClipboard = copyToClipboard;
+window.openBankDetailsModal = openBankDetailsModal;
+window.closeBankDetailsModal = closeBankDetailsModal;
+window.toggleBankDetailsEditMode = toggleBankDetailsEditMode;
+window.handleSaveBankDetails = handleSaveBankDetails;
+window.openShareScheduleModal = openShareScheduleModal;
+window.closeShareScheduleModal = closeShareScheduleModal;
+window.renderShareScheduleModalContent = renderShareScheduleModalContent;
+window.handleSaveShareSchedule = handleSaveShareSchedule;
+window.resetShareScheduleToDefault = resetShareScheduleToDefault;
+window.setAdminSubView = setAdminSubView;
+window.openAdminMyProfile = openAdminMyProfile;

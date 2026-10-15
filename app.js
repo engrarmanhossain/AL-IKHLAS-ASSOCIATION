@@ -50,6 +50,130 @@ const DEFAULT_BANK_DETAILS = {
   updatedBy: 'Admin / President'
 };
 
+// Official Bank Debited List & Balance After Ledger (Synced with Google Sheet gid=1208245608)
+const DEFAULT_BANK_LEDGER = [
+  {
+    dateFormatted: '20-Oct-2025',
+    date: new Date('2025-10-20'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 172.50,
+    rest: 24327.50,
+    balanceAfter: 24327.50,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 172.50 on 20-OCT-25, 03:33:04 PM.Available balance BDT 24,327.50. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '31-Dec-2025',
+    date: new Date('2025-12-31'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 11.33,
+    rest: 72391.68,
+    balanceAfter: 72391.68,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 11.33 on 31-DEC-25, 08:00:39 PM.Available balance BDT 72,391.68. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '31-Dec-2025',
+    date: new Date('2025-12-31'),
+    cause: 'Interest (Maybe)',
+    type: 'Credit',
+    amount: 75.51,
+    rest: 72403.01,
+    balanceAfter: 72403.01,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been credited by BDT 75.51 on 31-DEC-25, 08:00:39 PM.Available balance BDT 72,403.01. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '31-Dec-2025',
+    date: new Date('2025-12-31'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 200.00,
+    rest: 72191.68,
+    balanceAfter: 72191.68,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 200.00 on 31-DEC-25, 08:20:36 PM.Available balance BDT 72,191.68. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '31-Dec-2025',
+    date: new Date('2025-12-31'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 30.00,
+    rest: 72161.68,
+    balanceAfter: 72161.68,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 30.00 on 31-DEC-25, 08:20:36 PM.Available balance BDT 72,161.68. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '01-Jul-2026',
+    date: new Date('2026-07-01'),
+    cause: 'Interest (Maybe)',
+    type: 'Credit',
+    amount: 811.92,
+    rest: 214973.60,
+    balanceAfter: 214973.60,
+    message: 'Assalamu Alaikum. Your A/C 999***0351 has been credited by BDT 811.92 on 01-JUL-26, 07:46:06 AM.Available balance BDT 214,973.60. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '01-Jul-2026',
+    date: new Date('2026-07-01'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 81.19,
+    rest: 214892.41,
+    balanceAfter: 214892.41,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 81.19 on 01-JUL-26, 07:46:06 AM.Available balance BDT 214,892.41. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '01-Jul-2026',
+    date: new Date('2026-07-01'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 200.00,
+    rest: 214692.41,
+    balanceAfter: 214692.41,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 200.00 on 01-JUL-26, 08:21:58 AM.Available balance BDT 214,692.41. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '01-Jul-2026',
+    date: new Date('2026-07-01'),
+    cause: 'Account maintenance',
+    type: 'Debit',
+    amount: 30.00,
+    rest: 214662.41,
+    balanceAfter: 214662.41,
+    message: 'Assalamu Alaikum.Your A/C 999***0351 has been debited by BDT 30.00 on 01-JUL-26, 08:21:58 AM.Available balance BDT 214,662.41. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '27-Jul-2026',
+    date: new Date('2026-07-27'),
+    cause: 'withdraw for investment',
+    type: 'Withdraw',
+    amount: 250000.00,
+    rest: 662.41,
+    balanceAfter: 662.41,
+    message: 'Assalamu Alaikum.Your A/C 999101****351 has been debited by BDT 250,000.00 on 27-JUL-26, 02:17:44 PM.Available balance BDT 662.41. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '27-Jul-2026',
+    date: new Date('2026-07-27'),
+    cause: 'Service Charge',
+    type: 'Debit',
+    amount: 100.00,
+    rest: 562.41,
+    balanceAfter: 562.41,
+    message: 'Assalamu Alaikum.Your A/C 999101****351 has been debited by BDT 100.00 on 27-JUL-26, 02:17:44 PM.Available balance BDT 562.41. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '07-Sep-2026',
+    date: new Date('2026-09-07'),
+    cause: 'withdraw for investment',
+    type: 'Withdraw',
+    amount: 50000.00,
+    rest: 562.41,
+    balanceAfter: 562.41,
+    message: 'Assalamu Alaikum.Your A/C 999101****351 has been debited by BDT 50,000.00 on 07-SEP-26, 06:42:21 PM.Available balance BDT 562.41. MTB Hotline 16219'
+  }
+];
+
 // Initial Default Users & Roles
 const DEFAULT_USERS = [
   {
@@ -264,14 +388,21 @@ let state = {
       terms: 'Depend On Profit',
       status: 'Active'
     },
-    bankDebits: []
+    bankDebits: JSON.parse(JSON.stringify(DEFAULT_BANK_LEDGER))
   }
 };
 
-// Helper: Format Currency (BDT / ৳)
+// Helper: Format Currency (BDT / ৳) rounded for overview cards
 function formatCurrency(amount) {
-  if (isNaN(amount) || amount === null) return '৳0';
+  if (isNaN(amount) || amount === null) return '৳ 0';
   return '৳ ' + Math.round(amount).toLocaleString('en-IN');
+}
+
+// Helper: Format Currency with exact 2 decimal places for banking balances
+function formatDecimalCurrency(amount) {
+  if (amount === undefined || amount === null || amount === '' || isNaN(amount)) return '৳ 0.00';
+  const num = parseFloat(amount);
+  return '৳ ' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Helper: Format Date
@@ -2541,12 +2672,16 @@ function buildColumnMap(headers) {
   headers.forEach((h, idx) => {
     const str = (h || "").toString().toLowerCase().trim();
     if (str.includes("timestamp")) map.timestamp = idx;
-    else if (str.includes("deposit date") || str.includes("date")) map.depositDate = idx;
+    else if (str.includes("deposit date") || (str.includes("date") && !str.includes("update"))) map.depositDate = idx;
     else if (str.includes("name") || str.includes("member")) map.name = idx;
     else if (str === "id" || str.includes("member id")) map.id = idx;
+    else if (str.includes("cause")) map.id = idx;
     else if (str.includes("phone") || str.includes("contact") || str.includes("mobile")) map.phone = idx;
-    else if (str.includes("amount") || str.includes("taka") || str.includes("bdt")) map.amount = idx;
+    else if (str.includes("credit") || str.includes("debit") || str.includes("type")) map.phone = idx;
+    else if (str.includes("debited amount") || str.includes("amount") || str.includes("taka") || str.includes("bdt")) map.amount = idx;
+    else if (str.includes("balance") || str.includes("rest") || str.includes("after")) map.trxId = idx;
     else if (str.includes("trx") || str.includes("transaction") || str.includes("slip") || str.includes("reference")) map.trxId = idx;
+    else if (str.includes("message") || str.includes("sms") || str.includes("notice")) map.shares = idx;
     else if (str.includes("share") || str.includes("number of share")) map.shares = idx;
     else if (str.includes("email")) map.email = idx;
     else if (str.includes("status")) map.status = idx;
@@ -2758,12 +2893,13 @@ async function fetchLiveData(isManual = false) {
   const token = getToken();
   // Cache busting: pass timestamp _t and use cache: 'no-store'
   const fullUrl = `${apiUrl}?token=${encodeURIComponent(token)}&_t=${Date.now()}`;
+  const debitSheetUrl = `${apiUrl}?token=${encodeURIComponent(token)}&gid=1208245608&_t=${Date.now()}`;
 
   try {
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      cache: 'no-store'
-    });
+    const [response, debitResponse] = await Promise.all([
+      fetch(fullUrl, { method: 'GET', cache: 'no-store' }),
+      fetch(debitSheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null)
+    ]);
 
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
@@ -2778,8 +2914,20 @@ async function fetchLiveData(isManual = false) {
     // Cache to localStorage
     localStorage.setItem(CONFIG.STORAGE_KEY_CACHE, JSON.stringify(result));
 
-    // Process & Render
+    // Process & Render primary transactions
     processRawData(result.data, true);
+
+    // If dedicated debited sheet returned pristine rows, process them directly with authentic Balance After
+    if (debitResponse && debitResponse.ok) {
+      try {
+        const debitResult = await debitResponse.json();
+        if (debitResult && debitResult.data && Array.isArray(debitResult.data) && debitResult.data.length > 1) {
+          processDebitedSheetData(debitResult.data);
+        }
+      } catch (debitErr) {
+        console.warn('Debited list sheet parse error:', debitErr);
+      }
+    }
 
     state.lastUpdated = new Date();
     updateSyncTimeBadge();
@@ -2808,6 +2956,87 @@ async function fetchLiveData(isManual = false) {
   } finally {
     state.isFetching = false;
     if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+  }
+}
+
+// Process exact Debited List (gid 1208245608) with authentic 'Balance After'
+function processDebitedSheetData(rows) {
+  if (!rows || rows.length <= 1) return;
+  const headerRow = rows[0] || [];
+  const colMap = {
+    date: -1,
+    amount: -1,
+    cause: -1,
+    type: -1,
+    balanceAfter: -1,
+    message: -1
+  };
+
+  headerRow.forEach((h, idx) => {
+    const s = (h || '').toString().toLowerCase().trim();
+    if (s.includes('date')) colMap.date = idx;
+    else if (s.includes('debited amount') || s.includes('amount')) colMap.amount = idx;
+    else if (s.includes('cause')) colMap.cause = idx;
+    else if (s.includes('credit') || s.includes('debit') || s.includes('type')) colMap.type = idx;
+    else if (s.includes('balance') || s.includes('rest') || s.includes('after')) colMap.balanceAfter = idx;
+    else if (s.includes('message') || s.includes('sms') || s.includes('notice')) colMap.message = idx;
+  });
+
+  if (colMap.date === -1) colMap.date = 0;
+  if (colMap.amount === -1) colMap.amount = 1;
+  if (colMap.cause === -1) colMap.cause = 2;
+  if (colMap.type === -1) colMap.type = 3;
+  if (colMap.balanceAfter === -1) colMap.balanceAfter = 4;
+  if (colMap.message === -1) colMap.message = 5;
+
+  const parsedDebits = [];
+  let totalDeb = 0;
+  let totalCred = 0;
+  let totalWith = 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+
+    const rawDate = row[colMap.date];
+    const d = rawDate ? new Date(rawDate) : null;
+    const amt = parseFloat(row[colMap.amount]) || 0;
+    const cause = (row[colMap.cause] || '').toString().trim() || 'Account maintenance';
+    const type = (row[colMap.type] || '').toString().trim() || (amt >= 50000 ? 'Withdraw' : 'Debit');
+    const rawBal = row[colMap.balanceAfter];
+    const balAfter = (rawBal !== undefined && rawBal !== null && rawBal !== '' && !isNaN(parseFloat(rawBal))) ? parseFloat(rawBal) : 0;
+    const msg = (row[colMap.message] || '').toString().trim();
+
+    const isCredit = type.toLowerCase() === 'credit' || cause.toLowerCase().includes('interest');
+    const isWithdraw = type.toLowerCase() === 'withdraw' || cause.toLowerCase().includes('withdraw') || amt >= 50000;
+
+    if (isCredit) {
+      totalCred += amt;
+    } else if (isWithdraw) {
+      totalWith += amt;
+    } else {
+      totalDeb += amt;
+    }
+
+    parsedDebits.push({
+      date: d,
+      dateFormatted: formatDate(d),
+      amount: amt,
+      cause: cause,
+      type: isCredit ? 'Credit' : (isWithdraw ? 'Withdraw' : 'Debit'),
+      rest: balAfter,
+      balanceAfter: balAfter,
+      message: msg
+    });
+  }
+
+  if (parsedDebits.length > 0) {
+    state.treasury.bankDebits = parsedDebits;
+    if (totalDeb > 0) state.treasury.totalDebited = totalDeb;
+    if (totalCred > 0) state.treasury.totalCredited = totalCred;
+    if (totalWith > 0) state.treasury.totalWithdrawn = totalWith;
+    renderTreasuryCards();
+    renderBankLedgerTable();
   }
 }
 
@@ -2896,10 +3125,18 @@ function processRawData(rows, triggerToast = false) {
         debitDate = new Date(row[colIndex.depositDate]);
       }
       const debitAmt = parseFloat(row[colIndex.amount]) || 0;
-      const cause = row[colIndex.id] || row[3] || 'Account maintenance';
-      const type = row[colIndex.phone] || row[4] || (debitAmt >= 50000 ? 'Withdraw' : 'Debit');
-      const rest = parseFloat(row[colIndex.trxId] || row[6] || 0);
-      const msg = row[colIndex.shares] || row[7] || '';
+      const rawCause = row[colIndex.id] || row[3];
+      const rawType = row[colIndex.phone] || row[4];
+      const rawRest = row[colIndex.trxId] || row[6];
+      const rawMsg = row[colIndex.shares] || row[7];
+
+      const fallbackEntry = DEFAULT_BANK_LEDGER[bankDebits.length] || DEFAULT_BANK_LEDGER.find(d => Math.abs(d.amount - debitAmt) < 0.01);
+
+      const cause = (rawCause && rawCause !== 'Deposit Slip' && String(rawCause).trim()) ? String(rawCause).trim() : (fallbackEntry?.cause || 'Account maintenance');
+      const type = (rawType && rawType !== 'Deposit Slip' && String(rawType).trim()) ? String(rawType).trim() : (fallbackEntry?.type || (debitAmt >= 50000 ? 'Withdraw' : 'Debit'));
+      let rest = (rawRest !== undefined && rawRest !== null && !isNaN(parseFloat(rawRest))) ? parseFloat(rawRest) : (fallbackEntry?.balanceAfter || fallbackEntry?.rest || 0);
+      const msg = (rawMsg && rawMsg !== '1' && typeof rawMsg === 'string' && rawMsg.trim()) ? rawMsg.trim() : (fallbackEntry?.message || '');
+
       bankDebits.push({
         date: debitDate,
         dateFormatted: formatDate(debitDate),
@@ -2907,6 +3144,7 @@ function processRawData(rows, triggerToast = false) {
         cause: cause,
         type: type,
         rest: rest,
+        balanceAfter: rest,
         message: msg
       });
       continue;
@@ -3170,8 +3408,8 @@ function renderTreasuryCards() {
 
   if (bankEl) bankEl.textContent = formatCurrency(state.treasury.bankBalance);
   if (investEl) investEl.textContent = formatCurrency(state.treasury.totalWithdrawn);
-  if (debitedEl) debitedEl.textContent = '৳ ' + (state.treasury.totalDebited || 825.02).toLocaleString();
-  if (creditedEl) creditedEl.textContent = '৳ ' + (state.treasury.totalCredited || 887.43).toLocaleString();
+  if (debitedEl) debitedEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
+  if (creditedEl) creditedEl.textContent = '+' + formatDecimalCurrency(state.treasury.totalCredited || 887.43);
 }
 
 function renderBankLedgerTable() {
@@ -3179,20 +3417,19 @@ function renderBankLedgerTable() {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  const entries = state.treasury.bankDebits && state.treasury.bankDebits.length > 0 ? state.treasury.bankDebits : [
-    { dateFormatted: '20-Oct-2025', cause: 'Account maintenance', type: 'Debit', amount: 172.50, rest: 24327.50, message: 'MTB A/C 999***0351 debited BDT 172.50. Available: ৳24,327.50' },
-    { dateFormatted: '31-Dec-2025', cause: 'Account maintenance', type: 'Debit', amount: 11.33, rest: 72391.68, message: 'MTB A/C 999***0351 debited BDT 11.33. Available: ৳72,391.68' },
-    { dateFormatted: '31-Dec-2025', cause: 'Interest (Profit)', type: 'Credit', amount: 75.51, rest: 72403.01, message: 'MTB A/C 999***0351 credited BDT 75.51. Available: ৳72,403.01' },
-    { dateFormatted: '31-Dec-2025', cause: 'Account maintenance', type: 'Debit', amount: 200.00, rest: 72191.68, message: 'MTB A/C 999***0351 debited BDT 200.00. Available: ৳72,191.68' },
-    { dateFormatted: '31-Dec-2025', cause: 'Account maintenance', type: 'Debit', amount: 30.00, rest: 72161.68, message: 'MTB A/C 999***0351 debited BDT 30.00. Available: ৳72,161.68' },
-    { dateFormatted: '01-Jul-2026', cause: 'Interest (Profit)', type: 'Credit', amount: 811.92, rest: 214973.60, message: 'MTB A/C 999***0351 credited BDT 811.92. Available: ৳214,973.60' },
-    { dateFormatted: '01-Jul-2026', cause: 'Account maintenance', type: 'Debit', amount: 81.19, rest: 214892.41, message: 'MTB A/C 999***0351 debited BDT 81.19. Available: ৳214,892.41' },
-    { dateFormatted: '01-Jul-2026', cause: 'Account maintenance', type: 'Debit', amount: 200.00, rest: 214692.41, message: 'MTB A/C 999***0351 debited BDT 200.00. Available: ৳214,692.41' },
-    { dateFormatted: '01-Jul-2026', cause: 'Account maintenance', type: 'Debit', amount: 30.00, rest: 214662.41, message: 'MTB A/C 999***0351 debited BDT 30.00. Available: ৳214,662.41' },
-    { dateFormatted: '27-Jul-2026', cause: 'Withdraw for Investment (Monoara Dairy)', type: 'Withdraw', amount: 250000.00, rest: 662.41, message: 'MTB A/C 999***0351 debited BDT 250,000.00 for investment' },
-    { dateFormatted: '27-Jul-2026', cause: 'Service Charge', type: 'Debit', amount: 100.00, rest: 562.41, message: 'MTB A/C 999***0351 debited BDT 100.00. Available: ৳562.41' },
-    { dateFormatted: '07-Sep-2026', cause: 'Withdraw for Investment (Monoara Dairy Tranche 2)', type: 'Withdraw', amount: 50000.00, rest: 562.41, message: 'MTB A/C 999***0351 debited BDT 50,000.00 for investment' }
-  ];
+  const balEl = document.getElementById('bank-ledger-modal-balance');
+  const invEl = document.getElementById('bank-ledger-modal-invest');
+  const feeEl = document.getElementById('bank-ledger-modal-fees');
+  const intEl = document.getElementById('bank-ledger-modal-interest');
+
+  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 20562.41);
+  if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
+  if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
+  if (intEl) intEl.textContent = '+' + formatDecimalCurrency(state.treasury.totalCredited || 887.43);
+
+  const entries = (state.treasury.bankDebits && state.treasury.bankDebits.length > 0)
+    ? state.treasury.bankDebits
+    : DEFAULT_BANK_LEDGER;
 
   entries.forEach(item => {
     const tr = document.createElement('tr');
@@ -3203,17 +3440,21 @@ function renderBankLedgerTable() {
                        isWithdraw ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                        'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
 
+    const balAfter = (item.balanceAfter !== undefined && item.balanceAfter !== null && item.balanceAfter !== '')
+      ? item.balanceAfter
+      : item.rest;
+
     tr.innerHTML = `
       <td class="py-2.5 px-3 text-slate-800 dark:text-slate-200 font-semibold">${item.dateFormatted || '-'}</td>
-      <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300">${item.cause || 'Maintenance'}</td>
+      <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">${item.cause || 'Maintenance'}</td>
       <td class="py-2.5 px-3 text-center">
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${item.type || 'Debit'}</span>
       </td>
       <td class="py-2.5 px-3 text-right font-bold ${isCredit ? 'text-emerald-600' : isWithdraw ? 'text-blue-600' : 'text-rose-600'}">
-        ${isCredit ? '+' : '-'}${formatCurrency(item.amount)}
+        ${isCredit ? '+' : '-'}${formatDecimalCurrency(item.amount)}
       </td>
-      <td class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400 font-bold">${formatCurrency(item.rest)}</td>
-      <td class="py-2.5 px-3 text-[10px] text-slate-400 truncate max-w-xs" title="${item.message || ''}">${item.message || '-'}</td>
+      <td class="py-2.5 px-3 text-right font-black text-slate-900 dark:text-slate-100 bg-amber-50/50 dark:bg-amber-950/20">${formatDecimalCurrency(balAfter)}</td>
+      <td class="py-2.5 px-3 text-[10px] text-slate-500 dark:text-slate-400 font-sans truncate max-w-xs" title="${item.message || ''}">${item.message || '-'}</td>
     `;
     tbody.appendChild(tr);
   });

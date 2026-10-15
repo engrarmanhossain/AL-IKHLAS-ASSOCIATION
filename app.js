@@ -46,7 +46,7 @@ const DEFAULT_BANK_DETAILS = {
   accountType: 'Current / Association Account',
   swiftCode: 'MTBLBDDH',
   instructions: 'Deposits can be made via MTB Branch Slips, BEFTN, NPSB, RTGS, or Internet Banking. Please mention your Full Name & Month in deposit remarks.',
-  liquidBalance: 22562.41,
+  liquidBalance: 23362.41,
   updatedAt: '16 Oct 2026',
   updatedBy: 'Admin / President'
 };
@@ -182,6 +182,26 @@ const DEFAULT_BANK_LEDGER = [
     rest: 562.41,
     balanceAfter: 562.41,
     message: 'Assalamu Alaikum.Your A/C 999101****351 has been debited by BDT 50,000.00 on 07-SEP-26, 06:42:21 PM.Available balance BDT 562.41. MTB Hotline 16219'
+  },
+  {
+    dateFormatted: '16-Oct-2026',
+    date: new Date('2026-10-16'),
+    cause: 'Profit from Investment',
+    type: 'Profit',
+    amount: 400.00,
+    rest: 22962.41,
+    balanceAfter: 22962.41,
+    message: 'Assalamu Alaikum. Total Profit Amount credited to account.'
+  },
+  {
+    dateFormatted: '16-Oct-2026',
+    date: new Date('2026-10-16'),
+    cause: 'IR Deposit',
+    type: 'IR Deposit',
+    amount: 400.00,
+    rest: 23362.41,
+    balanceAfter: 23362.41,
+    message: 'Assalamu Alaikum. Total IR Deposite Amount credited to account.'
   }
 ];
 
@@ -386,11 +406,11 @@ let state = {
     totalWithdrawn: 300000,
     totalDebited: 825.02,
     totalCredited: 887.43,
-    totalProfit: 0,
-    totalProfitAmount: 0,
-    totalIrDeposit: 0,
+    totalProfit: 400.00,
+    totalProfitAmount: 400.00,
+    totalIrDeposit: 400.00,
     totalDirectDeposits: 500.00,
-    bankBalance: 22562.41,
+    bankBalance: 23362.41,
     bankName: 'Mutual Trust Bank PLC',
     bankAccount: '999101****351',
     investment: {
@@ -731,7 +751,7 @@ function renderBankDetailsModalContent() {
   viewContainer.classList.remove('hidden');
 
   const b = state.bankDetails || DEFAULT_BANK_DETAILS;
-  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 22562.41;
+  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 23362.41;
   const canEdit = canEditBankDetails();
 
   viewContainer.innerHTML = `
@@ -3457,14 +3477,14 @@ function processDebitedSheetData(rows) {
     const rawDate = row[colMap.date];
     const d = rawDate ? new Date(rawDate) : null;
     const amt = parseFloat(row[colMap.amount]) || 0;
-    const cause = (row[colMap.cause] || '').toString().trim() || 'Account maintenance';
+    const rawCause = (row[colMap.cause] || '').toString().trim();
     const rawType = (row[colMap.type] || '').toString().trim();
     const rawBal = row[colMap.balanceAfter];
     const balAfter = (rawBal !== undefined && rawBal !== null && rawBal !== '' && !isNaN(parseFloat(rawBal))) ? parseFloat(rawBal) : 0;
     const msg = (row[colMap.message] || '').toString().trim();
 
     const typeLower = rawType.toLowerCase();
-    const causeLower = cause.toLowerCase();
+    const causeLower = rawCause.toLowerCase();
     const msgLower = msg.toLowerCase();
 
     // Specific category classification
@@ -3474,6 +3494,14 @@ function processDebitedSheetData(rows) {
     const isInterestCredit = !isProfit && !isIrDeposit && !isDeposit && (typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited'));
     const isCredit = isProfit || isIrDeposit || isDeposit || isInterestCredit;
     const isWithdraw = typeLower === 'withdraw' || (!isCredit && (amt >= 50000 || causeLower.includes('withdraw')));
+
+    let cause = rawCause;
+    if (!cause) {
+      if (isProfit) cause = 'Profit from Investment';
+      else if (isIrDeposit) cause = 'IR Deposit';
+      else if (isDeposit) cause = 'Frist Deposit amount';
+      else cause = 'Account maintenance';
+    }
 
     let displayType = 'Debit';
     if (isProfit) {
@@ -3869,11 +3897,14 @@ function recalculateLiquidBalance() {
     state.treasury.totalWithdrawn = listedWithdrawals;
   }
 
-  // Sync state treasury properties with exact listed amounts (0 if not listed)
+  // Reconcile Profit and IR Deposit (prevent dual counting between Debited List and Summary Sheet)
+  const effectiveProfit = Math.max(listedProfit, state.treasury.summaryProfit || 0);
+  const effectiveIrDeposit = Math.max(listedIrDeposit, state.treasury.summaryIrDeposit || 0);
+
   state.treasury.totalDirectDeposits = listedDeposit;
-  state.treasury.totalIrDeposit = listedIrDeposit;
-  state.treasury.totalProfit = listedProfit;
-  state.treasury.totalProfitAmount = listedProfit;
+  state.treasury.totalIrDeposit = effectiveIrDeposit;
+  state.treasury.totalProfit = effectiveProfit;
+  state.treasury.totalProfitAmount = effectiveProfit;
 
   const totalDep = state.treasury.totalDeposited || receivedCapital || 322500;
   const totalInv = state.treasury.totalWithdrawn || 300000;
@@ -3881,8 +3912,11 @@ function recalculateLiquidBalance() {
   const totalInterest = state.treasury.totalCredited || 887.43;
 
   // Base Operational Balance = Member Deposits - Investments - Fees + Bank Interest
-  // Per instruction: Do not use any data of Profit, Deposit, IR Deposit for any calculation.
-  const finalLiquidBalance = totalDep - totalInv - totalDeb + totalInterest;
+  const baseBalance = totalDep - totalInv - totalDeb + totalInterest;
+
+  // User Instruction: Total IR Deposite Amount and Total Profit Amount will be added with Net Liquid Balance.
+  // Each amount is counted strictly ONCE (never dual time). Deposit (First Deposit) is not added.
+  const finalLiquidBalance = baseBalance + effectiveIrDeposit + effectiveProfit;
 
   state.treasury.bankBalance = finalLiquidBalance;
   state.treasury.availableLiquidity = finalLiquidBalance;
@@ -4333,9 +4367,10 @@ function renderBankLedgerTable() {
   const totalDep = state.treasury.totalDeposited || 322500.00;
   const totalInterest = state.treasury.totalCredited || 887.43;
   const totalDebits = (state.treasury.totalWithdrawn || 300000.00) + (state.treasury.totalDebited || 825.02);
-  const totalInflows = totalDep + totalInterest;
+  const extraCredits = (state.treasury.totalIrDeposit || 0) + (state.treasury.totalProfit || 0);
+  const totalInflows = totalDep + totalInterest + extraCredits;
 
-  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22562.41);
+  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23362.41);
   if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
   if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
   if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalInterest);
@@ -4343,13 +4378,19 @@ function renderBankLedgerTable() {
   if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalInflows);
 
   const interestBannerEl = document.getElementById('bank-ledger-interest-credits');
-  if (interestBannerEl) interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
+  if (interestBannerEl) {
+    if (extraCredits > 0) {
+      interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest + extraCredits);
+    } else {
+      interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
+    }
+  }
 
   const debitsBannerEl = document.getElementById('bank-ledger-total-debits-banner');
   if (debitsBannerEl) debitsBannerEl.textContent = formatDecimalCurrency(totalDebits);
 
   const netLiquidBannerEl = document.getElementById('bank-ledger-net-liquid-banner');
-  if (netLiquidBannerEl) netLiquidBannerEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22562.41);
+  if (netLiquidBannerEl) netLiquidBannerEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23362.41);
 
   if (currentBankLedgerView === 'deposits') {
     // Show all credited member deposits

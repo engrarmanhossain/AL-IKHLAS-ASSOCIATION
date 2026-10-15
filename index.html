@@ -298,15 +298,15 @@
               <i class="fa-solid fa-bangladeshi-taka-sign text-2xl opacity-60"></i>
             </div>
             <div class="flex items-center justify-between">
-              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Funds Collected</p>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-300">Grand Total</span>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Member Deposits (Credit)</p>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">100% Credited</span>
             </div>
             <div class="flex items-baseline gap-1 mt-2">
               <span class="text-3xl lg:text-4xl font-black text-brand-900 dark:text-brand-300" id="kpi-total-amount">৳0</span>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-100 dark:border-slate-800">
               <div>
-                <span class="text-slate-400 block text-[10px] uppercase font-bold">Received</span>
+                <span class="text-slate-400 block text-[10px] uppercase font-bold">Credited Inflows</span>
                 <strong class="text-emerald-600 dark:text-emerald-400 font-bold text-xs" id="kpi-received-amount">৳0</strong>
               </div>
               <div>
@@ -321,7 +321,7 @@
             <div class="absolute -right-3 -top-3 w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
               <i class="fa-solid fa-layer-group text-2xl opacity-60"></i>
             </div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Regular Shares</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Regular Shares (Credit)</p>
             <div class="flex items-baseline gap-1 mt-2">
               <span class="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400" id="kpi-regular-amount">৳0</span>
             </div>
@@ -337,8 +337,8 @@
               <i class="fa-solid fa-coins text-2xl opacity-60"></i>
             </div>
             <div class="flex items-center justify-between">
-              <p class="text-xs font-semibold uppercase tracking-wider text-purple-800 dark:text-purple-300">Extra Deposits</p>
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus</span>
+              <p class="text-xs font-semibold uppercase tracking-wider text-purple-800 dark:text-purple-300">Extra Deposits (Credit)</p>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus Credit</span>
             </div>
             <div class="flex items-baseline gap-1 mt-2">
               <span class="text-2xl font-extrabold text-purple-700 dark:text-purple-300" id="kpi-extra-amount">৳0</span>
@@ -424,13 +424,13 @@
                 <span>Bank Operations &amp; Profit</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-xs font-bold text-slate-500">Fees:</span>
+                <span class="text-xs font-bold text-slate-500">Fees (Debit):</span>
                 <span class="text-sm font-bold text-rose-600" id="treasury-debited-amount">৳ 825.02</span>
                 <span class="text-xs font-bold text-slate-400">•</span>
-                <span class="text-xs font-bold text-slate-500">Interest:</span>
-                <span class="text-sm font-bold text-emerald-600" id="treasury-credited-amount">৳ 887.43</span>
+                <span class="text-xs font-bold text-slate-500">Interest (Credit):</span>
+                <span class="text-sm font-bold text-emerald-600" id="treasury-credited-amount">+৳ 887.43</span>
               </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400">Net Operational Yield: +৳ 62.41</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Net Operational Yield: +৳ 62.41 • Member Deposits Credited</p>
             </div>
             <span class="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Audited</span>
           </div>
@@ -465,9 +465,9 @@
               <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-chart-column text-brand-600"></i>
-                  Monthly Collections: Regular vs Extra Deposits
+                  Monthly Credited Collections: Regular Shares vs Extra Deposits
                 </h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Visualizing regular monthly share capital alongside extra deposits</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Visualizing regular monthly share capital alongside extra deposits (all recorded as Credit)</p>
               </div>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 12 Months
@@ -504,9 +504,9 @@
               <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-ranking-star text-gold-500"></i>
-                  Member Totals: Regular Capital vs Extra Deposit
+                  Member Totals: Regular Capital vs Extra Deposit (Credit)
                 </h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Stacked breakdown showing exact regular and extra funds per member</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Stacked breakdown showing exact credited regular and extra funds per member</p>
               </div>
             </div>
             <div class="relative h-72 sm:h-80 w-full">
@@ -1002,7 +1002,7 @@
           <i class="fa-solid fa-kaaba text-xl"></i>
         </div>
         <h2 class="text-2xl font-black text-brand-900 dark:text-white tracking-tight">AL-IKHLAS ASSOCIATION</h2>
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Official Member Contribution Statement &amp; Ledger</p>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Official Member Contribution Statement &amp; Ledger (Credit Inflows)</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 my-6 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
@@ -1012,17 +1012,17 @@
           <span class="text-xs text-brand-600 dark:text-brand-400 block font-mono" id="modal-member-id">-</span>
         </div>
         <div>
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Regular Share Capital</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Regular Share Capital (Credit)</span>
           <span class="text-base font-black text-emerald-700 dark:text-emerald-400" id="modal-member-regular">৳0</span>
           <span class="text-xs text-slate-500 block" id="modal-member-shares">0 Shares</span>
         </div>
         <div>
-          <span class="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block">Extra Deposits</span>
+          <span class="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block">Extra Deposits (Credit)</span>
           <span class="text-base font-black text-purple-700 dark:text-purple-300" id="modal-member-extra">৳0</span>
           <span class="text-xs text-slate-500 block" id="modal-member-extra-count">0 tx</span>
         </div>
         <div>
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Grand Total Paid</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Credited Capital</span>
           <span class="text-lg font-black text-brand-900 dark:text-brand-300" id="modal-member-total">৳0</span>
           <span class="text-xs font-semibold text-emerald-600 block" id="modal-member-status">Cleared</span>
         </div>
@@ -1070,18 +1070,18 @@
 
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Deposit History (Chronological)</h4>
-          <span class="text-xs text-slate-400">Regular Shares &amp; Extra Deposits</span>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Deposit History (Credited Chronological)</h4>
+          <span class="text-xs text-slate-400">Regular Shares &amp; Extra Deposits (All Credited)</span>
         </div>
         <div class="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl">
           <table class="w-full text-left text-xs whitespace-nowrap">
             <thead class="bg-slate-100 dark:bg-slate-800 sticky top-0 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
               <tr>
                 <th class="py-2.5 px-3">Date</th>
-                <th class="py-2.5 px-3 text-center">Type</th>
+                <th class="py-2.5 px-3 text-center">Type (Credit)</th>
                 <th class="py-2.5 px-3">Reference / TRX ID</th>
                 <th class="py-2.5 px-3 text-center">Share</th>
-                <th class="py-2.5 px-3 text-right">Amount (৳)</th>
+                <th class="py-2.5 px-3 text-right">Credited Amount (+৳)</th>
                 <th class="py-2.5 px-3 text-center">Status</th>
               </tr>
             </thead>
@@ -1294,7 +1294,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
           <span class="text-[10px] uppercase font-bold text-slate-400 block">Bank Liquid Balance</span>
           <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="bank-ledger-modal-balance">৳ 22,562.41</span>
@@ -1304,18 +1304,51 @@
           <span class="text-sm font-black text-blue-600 dark:text-blue-400 block mt-0.5" id="bank-ledger-modal-invest">৳ 300,000.00</span>
         </div>
         <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Bank Fees</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Fees (Debit)</span>
           <span class="text-sm font-black text-rose-600 dark:text-rose-400 block mt-0.5" id="bank-ledger-modal-fees">৳ 825.02</span>
         </div>
         <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Interest Credited</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Interest (Credit)</span>
           <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="bank-ledger-modal-interest">+৳ 887.43</span>
         </div>
       </div>
 
+      <!-- Accounting Rule & Credit Reconciliation Banner -->
+      <div class="mb-4 p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 text-xs">
+        <div class="flex items-start gap-2.5">
+          <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs mt-0.5 shadow-sm">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div class="flex-1 space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-emerald-900 dark:text-emerald-200">Accounting Principle: Member Deposits are Recorded as Direct Credit</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-200/70 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Audited Reconciled</span>
+            </div>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300">
+              Every deposit into Association accounts is an active Credit inflow. Member Deposits Credited (<strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-member-credits">৳ 322,500.00</strong>) + Bank Interest Credited (<strong class="text-emerald-700 dark:text-emerald-300">+৳ 887.43</strong>) = Total Inflow <strong class="text-emerald-800 dark:text-emerald-200" id="bank-ledger-total-credits">৳ 323,387.43</strong>. Total Debited (Investment + Fees) = <strong class="text-rose-700 dark:text-rose-400">৳ 300,825.02</strong>. Net Liquid Balance = <strong class="text-emerald-700 dark:text-emerald-300">৳ 22,562.41</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ledger View Filter Buttons -->
+      <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs">
+          <button type="button" onclick="setBankLedgerView('debits')" id="btn-ledger-debits" class="px-3 py-1.5 rounded-lg font-bold transition bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-receipt"></i>
+            <span>Bank Maintenance &amp; Debits (14)</span>
+          </button>
+          <button type="button" onclick="setBankLedgerView('deposits')" id="btn-ledger-deposits" class="px-3 py-1.5 rounded-lg font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-coins"></i>
+            <span>All Member Deposit Credits (139)</span>
+          </button>
+        </div>
+        <span class="text-[11px] font-mono text-slate-500" id="bank-ledger-view-count">14 Entries</span>
+      </div>
+
       <div class="overflow-x-auto max-h-96">
         <table class="w-full text-left text-xs whitespace-nowrap">
-          <thead class="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold uppercase text-slate-500 sticky top-0">
+          <thead id="bank-ledger-thead" class="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold uppercase text-slate-500 sticky top-0">
             <tr>
               <th class="py-2.5 px-3">Date</th>
               <th class="py-2.5 px-3">Transaction Cause</th>

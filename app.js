@@ -1506,8 +1506,8 @@ function renderMemberPersonalView() {
   if (memberData.transactions && memberData.transactions.length > 0) {
     transactionsHtml = memberData.transactions.map((tx) => {
       const typeBadge = tx.isExtra ? 
-        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit</span>' :
-        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share</span>';
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit (Credit)</span>' :
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share (Credit)</span>';
 
       const statusBadge = tx.status === 'Received' ?
         '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><i class="fa-solid fa-circle-check mr-1 text-[9px]"></i>Received</span>' :
@@ -1527,7 +1527,7 @@ function renderMemberPersonalView() {
           </td>
           <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${tx.isExtra ? '-' : tx.shares}</td>
           <td class="py-3 px-4 text-right font-black ${tx.isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-emerald-700 dark:text-emerald-400'} text-sm">
-            ${formatCurrency(tx.amount)}
+            +${formatCurrency(tx.amount)}
           </td>
           <td class="py-3 px-4 text-center">${statusBadge}</td>
         </tr>
@@ -1760,7 +1760,7 @@ function renderMemberPersonalView() {
         <div class="absolute -right-3 -top-3 w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
           <i class="fa-solid fa-layer-group text-xl opacity-70"></i>
         </div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">My Regular Capital</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">My Regular Capital (Credit)</p>
         <div class="flex items-baseline gap-1 mt-2">
           <span class="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">${formatCurrency(memberData.regularAmount)}</span>
         </div>
@@ -1776,8 +1776,8 @@ function renderMemberPersonalView() {
           <i class="fa-solid fa-coins text-xl opacity-70"></i>
         </div>
         <div class="flex items-center justify-between">
-          <p class="text-xs font-semibold uppercase tracking-wider text-purple-800 dark:text-purple-300">My Extra Deposits</p>
-          <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus</span>
+          <p class="text-xs font-semibold uppercase tracking-wider text-purple-800 dark:text-purple-300">My Extra Deposits (Credit)</p>
+          <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus Credit</span>
         </div>
         <div class="flex items-baseline gap-1 mt-2">
           <span class="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300">${formatCurrency(memberData.extraAmount)}</span>
@@ -1793,13 +1793,13 @@ function renderMemberPersonalView() {
         <div class="absolute -right-3 -top-3 w-14 h-14 bg-brand-50 dark:bg-brand-950/40 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400">
           <i class="fa-solid fa-wallet text-xl opacity-70"></i>
         </div>
-        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Grand Total Paid</p>
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Credited Capital</p>
         <div class="flex items-baseline gap-1 mt-2">
           <span class="text-2xl sm:text-3xl font-black text-brand-900 dark:text-brand-300">${formatCurrency(memberData.totalAmount)}</span>
         </div>
         <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <span>Deposits: <strong>${memberData.depositCount} Total</strong></span>
-          <span class="text-emerald-600 font-bold">Verified</span>
+          <span>Deposits: <strong>${memberData.depositCount} Credited</strong></span>
+          <span class="text-emerald-600 font-bold">100% Credited</span>
         </div>
       </div>
 
@@ -1828,7 +1828,7 @@ function renderMemberPersonalView() {
         <div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <i class="fa-solid fa-receipt text-brand-600"></i>
-            My Deposit History &amp; Contribution Ledger
+            My Credited Deposits &amp; Financial Ledger
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400">
             Chronological record of all share capital and extra deposits credited to your account
@@ -1846,10 +1846,10 @@ function renderMemberPersonalView() {
           <thead class="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400">
             <tr>
               <th class="py-3 px-4">Date</th>
-              <th class="py-3 px-4 text-center">Deposit Type</th>
+              <th class="py-3 px-4 text-center">Deposit Type (Credit)</th>
               <th class="py-3 px-4">TRX ID / Slip Reference</th>
               <th class="py-3 px-4 text-center">Shares</th>
-              <th class="py-3 px-4 text-right">Amount (BDT)</th>
+              <th class="py-3 px-4 text-right">Credited Amount (+BDT)</th>
               <th class="py-3 px-4 text-center">Status</th>
             </tr>
           </thead>
@@ -1858,9 +1858,9 @@ function renderMemberPersonalView() {
           </tbody>
           <tfoot class="bg-slate-50 dark:bg-slate-800/50 font-bold text-xs text-slate-700 dark:text-slate-300 border-t-2 border-slate-200 dark:border-slate-700">
             <tr>
-              <td class="py-3 px-4" colspan="3">Grand Total Contributed</td>
+              <td class="py-3 px-4" colspan="3">Total Credited to Account</td>
               <td class="py-3 px-4 text-center text-brand-700 dark:text-brand-400 font-extrabold">${memberData.totalShares} Shares</td>
-              <td class="py-3 px-4 text-right text-brand-700 dark:text-brand-400 text-sm font-black">${formatCurrency(memberData.totalAmount)}</td>
+              <td class="py-3 px-4 text-right text-emerald-700 dark:text-emerald-400 text-sm font-black">+${formatCurrency(memberData.totalAmount)}</td>
               <td class="py-3 px-4 text-center text-emerald-600 font-bold">100% Verified</td>
             </tr>
           </tfoot>
@@ -2049,8 +2049,8 @@ function exportMyStatementExcel() {
     'Date': tx.dateFormatted,
     'Member Name': state.currentUser.name,
     'Member ID': memberData.id,
-    'Deposit Type': tx.isExtra ? 'Extra Deposit' : 'Regular Share Capital',
-    'Amount (BDT)': tx.amount,
+    'Deposit Type (Credit)': tx.isExtra ? 'Extra Deposit (Credit)' : 'Regular Share Capital (Credit)',
+    'Credited Amount (BDT)': tx.amount,
     'Number of Share': tx.isExtra ? 'N/A' : tx.shares,
     'TRX. ID / Reference': tx.trxId,
     'Status': tx.status,
@@ -3526,6 +3526,24 @@ function renderTreasuryCards() {
   if (creditedEl) creditedEl.textContent = '+' + formatDecimalCurrency(state.treasury.totalCredited || 887.43);
 }
 
+let currentBankLedgerView = 'debits';
+
+function setBankLedgerView(viewMode) {
+  currentBankLedgerView = viewMode;
+  const btnDebits = document.getElementById('btn-ledger-debits');
+  const btnDeposits = document.getElementById('btn-ledger-deposits');
+  if (btnDebits && btnDeposits) {
+    if (viewMode === 'debits') {
+      btnDebits.className = 'px-3 py-1.5 rounded-lg font-bold transition bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm flex items-center gap-1.5';
+      btnDeposits.className = 'px-3 py-1.5 rounded-lg font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5';
+    } else {
+      btnDeposits.className = 'px-3 py-1.5 rounded-lg font-bold transition bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm flex items-center gap-1.5';
+      btnDebits.className = 'px-3 py-1.5 rounded-lg font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5';
+    }
+  }
+  renderBankLedgerTable();
+}
+
 function renderBankLedgerTable() {
   const tbody = document.getElementById('bank-ledger-tbody');
   if (!tbody) return;
@@ -3535,43 +3553,103 @@ function renderBankLedgerTable() {
   const invEl = document.getElementById('bank-ledger-modal-invest');
   const feeEl = document.getElementById('bank-ledger-modal-fees');
   const intEl = document.getElementById('bank-ledger-modal-interest');
+  const memberCreditsEl = document.getElementById('bank-ledger-member-credits');
+  const totalCreditsEl = document.getElementById('bank-ledger-total-credits');
+  const countEl = document.getElementById('bank-ledger-view-count');
+  const thead = document.getElementById('bank-ledger-thead');
 
-  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 20562.41);
+  const totalDep = state.treasury.totalDeposited || 322500.00;
+  const totalProf = state.treasury.totalCredited || 887.43;
+
+  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22562.41);
   if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
   if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
-  if (intEl) intEl.textContent = '+' + formatDecimalCurrency(state.treasury.totalCredited || 887.43);
+  if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalProf);
+  if (memberCreditsEl) memberCreditsEl.textContent = formatDecimalCurrency(totalDep);
+  if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalDep + totalProf);
 
-  const entries = (state.treasury.bankDebits && state.treasury.bankDebits.length > 0)
-    ? state.treasury.bankDebits
-    : DEFAULT_BANK_LEDGER;
+  if (currentBankLedgerView === 'deposits') {
+    // Show all credited member deposits
+    if (thead) {
+      thead.innerHTML = `
+        <tr>
+          <th class="py-2.5 px-3">Date</th>
+          <th class="py-2.5 px-3">Member Name</th>
+          <th class="py-2.5 px-3 text-center">Deposit Type (Credit)</th>
+          <th class="py-2.5 px-3 text-right">Credited Amount (+BDT)</th>
+          <th class="py-2.5 px-3 text-center">Shares</th>
+          <th class="py-2.5 px-3">Slip Reference / TRX ID</th>
+        </tr>
+      `;
+    }
+    if (countEl) countEl.textContent = `${state.transactions.length} Credited Deposits`;
 
-  entries.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
-    const isCredit = item.type === 'Credit' || (item.cause && item.cause.toLowerCase().includes('interest'));
-    const isWithdraw = item.type === 'Withdraw' || item.amount >= 50000;
-    const badgeClass = isCredit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
-                       isWithdraw ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
-                       'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+    state.transactions.forEach(tx => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
+      const badge = tx.isExtra ? 
+        '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit (Credit)</span>' :
+        '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share (Credit)</span>';
 
-    const balAfter = (item.balanceAfter !== undefined && item.balanceAfter !== null && item.balanceAfter !== '')
-      ? item.balanceAfter
-      : item.rest;
+      tr.innerHTML = `
+        <td class="py-2.5 px-3 text-slate-800 dark:text-slate-200 font-semibold">${tx.dateFormatted || '-'}</td>
+        <td class="py-2.5 px-3 text-slate-900 dark:text-white font-bold">${tx.name}</td>
+        <td class="py-2.5 px-3 text-center">${badge}</td>
+        <td class="py-2.5 px-3 text-right font-black ${tx.isExtra ? 'text-purple-700 dark:text-purple-300' : 'text-emerald-700 dark:text-emerald-300'}">+${formatDecimalCurrency(tx.amount)}</td>
+        <td class="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300">${tx.isExtra ? '-' : tx.shares}</td>
+        <td class="py-2.5 px-3 text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-xs" title="${tx.trxId}">${tx.trxId}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } else {
+    // Show bank operations, maintenance debits and interest credits
+    if (thead) {
+      thead.innerHTML = `
+        <tr>
+          <th class="py-2.5 px-3">Date</th>
+          <th class="py-2.5 px-3">Transaction Cause</th>
+          <th class="py-2.5 px-3 text-center">Type</th>
+          <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
+          <th class="py-2.5 px-3 text-right text-brand-700 dark:text-brand-300 bg-brand-50/60 dark:bg-brand-950/40 border-x border-brand-200/60 dark:border-brand-800/60 font-black">Balance After (BDT)</th>
+          <th class="py-2.5 px-3">Bank SMS Alert Notice</th>
+        </tr>
+      `;
+    }
 
-    tr.innerHTML = `
-      <td class="py-2.5 px-3 text-slate-800 dark:text-slate-200 font-semibold">${item.dateFormatted || '-'}</td>
-      <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">${item.cause || 'Maintenance'}</td>
-      <td class="py-2.5 px-3 text-center">
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${item.type || 'Debit'}</span>
-      </td>
-      <td class="py-2.5 px-3 text-right font-bold ${isCredit ? 'text-emerald-600' : isWithdraw ? 'text-blue-600' : 'text-rose-600'}">
-        ${isCredit ? '+' : '-'}${formatDecimalCurrency(item.amount)}
-      </td>
-      <td class="py-2.5 px-3 text-right font-black text-slate-900 dark:text-slate-100 bg-amber-50/50 dark:bg-amber-950/20">${formatDecimalCurrency(balAfter)}</td>
-      <td class="py-2.5 px-3 text-[10px] text-slate-500 dark:text-slate-400 font-sans truncate max-w-xs" title="${item.message || ''}">${item.message || '-'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+    const entries = (state.treasury.bankDebits && state.treasury.bankDebits.length > 0)
+      ? state.treasury.bankDebits
+      : DEFAULT_BANK_LEDGER;
+
+    if (countEl) countEl.textContent = `${entries.length} Entries`;
+
+    entries.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
+      const isCredit = item.type === 'Credit' || (item.cause && item.cause.toLowerCase().includes('interest'));
+      const isWithdraw = item.type === 'Withdraw' || item.amount >= 50000;
+      const badgeClass = isCredit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                         isWithdraw ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                         'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+
+      const balAfter = (item.balanceAfter !== undefined && item.balanceAfter !== null && item.balanceAfter !== '')
+        ? item.balanceAfter
+        : item.rest;
+
+      tr.innerHTML = `
+        <td class="py-2.5 px-3 text-slate-800 dark:text-slate-200 font-semibold">${item.dateFormatted || '-'}</td>
+        <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">${item.cause || 'Maintenance'}</td>
+        <td class="py-2.5 px-3 text-center">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${item.type || 'Debit'}</span>
+        </td>
+        <td class="py-2.5 px-3 text-right font-bold ${isCredit ? 'text-emerald-600' : isWithdraw ? 'text-blue-600' : 'text-rose-600'}">
+          ${isCredit ? '+' : '-'}${formatDecimalCurrency(item.amount)}
+        </td>
+        <td class="py-2.5 px-3 text-right font-black text-slate-900 dark:text-slate-100 bg-amber-50/50 dark:bg-amber-950/20">${formatDecimalCurrency(balAfter)}</td>
+        <td class="py-2.5 px-3 text-[10px] text-slate-500 dark:text-slate-400 font-sans truncate max-w-xs" title="${item.message || ''}">${item.message || '-'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 }
 
 function openBankLedgerModal() {
@@ -3696,7 +3774,7 @@ function renderCharts() {
           },
           {
             type: 'bar',
-            label: 'Regular Share Capital (৳)',
+            label: 'Regular Share Capital (Credit) (৳)',
             data: regularMonthly,
             backgroundColor: '#047857',
             borderRadius: 6,
@@ -3705,7 +3783,7 @@ function renderCharts() {
           },
           {
             type: 'bar',
-            label: 'Extra Deposits (৳)',
+            label: 'Extra Deposits (Credit) (৳)',
             data: extraMonthly,
             backgroundColor: '#8b5cf6',
             borderRadius: 6,
@@ -3811,13 +3889,13 @@ function renderCharts() {
         labels: rankLabels,
         datasets: [
           {
-            label: 'Regular Share Capital (৳)',
+            label: 'Regular Share Capital (Credit) (৳)',
             data: rankReg,
             backgroundColor: '#047857',
             borderRadius: 6,
           },
           {
-            label: 'Extra Deposit (৳)',
+            label: 'Extra Deposit (Credit) (৳)',
             data: rankExtra,
             backgroundColor: '#8b5cf6',
             borderRadius: 6,
@@ -3966,19 +4044,19 @@ function renderMembersGrid() {
         <!-- Financial Breakdown Cards: Regular vs Extra -->
         <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
           <div class="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-            <span class="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-400 block">Regular Capital</span>
-            <span class="text-sm font-extrabold text-emerald-700 dark:text-emerald-300">${formatCurrency(m.regularAmount)}</span>
+            <span class="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-400 block">Regular Capital (Credit)</span>
+            <span class="text-sm font-extrabold text-emerald-700 dark:text-emerald-300">+${formatCurrency(m.regularAmount)}</span>
             <span class="text-[10px] text-emerald-600 block">${m.totalShares} Shares</span>
           </div>
           <div class="bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-xl border border-purple-100 dark:border-purple-900/30">
-            <span class="text-[10px] uppercase font-bold text-purple-800 dark:text-purple-400 block">Extra Deposit</span>
-            <span class="text-sm font-extrabold text-purple-700 dark:text-purple-300">${formatCurrency(m.extraAmount)}</span>
+            <span class="text-[10px] uppercase font-bold text-purple-800 dark:text-purple-400 block">Extra Deposit (Credit)</span>
+            <span class="text-sm font-extrabold text-purple-700 dark:text-purple-300">+${formatCurrency(m.extraAmount)}</span>
             <span class="text-[10px] text-purple-600 block">${m.extraCount} Deposits</span>
           </div>
         </div>
 
         <div class="flex items-center justify-between text-xs text-slate-500 mt-3 px-1">
-          <span>Grand Total: <strong class="text-slate-900 dark:text-white font-black">${formatCurrency(m.totalAmount)}</strong></span>
+          <span>Total Credited: <strong class="text-slate-900 dark:text-white font-black">${formatCurrency(m.totalAmount)}</strong></span>
           ${hasPending ? `<span class="text-rose-500 font-bold">Pending: ${formatCurrency(m.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
         </div>
 
@@ -4088,15 +4166,15 @@ function openMemberStatement(memberName) {
     tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50';
 
     const typeBadge = tx.isExtra ? 
-      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Extra Deposit</span>' :
-      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Regular Share</span>';
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit (Credit)</span>' :
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share (Credit)</span>';
 
     tr.innerHTML = `
       <td class="py-2.5 px-3 font-medium text-slate-700 dark:text-slate-300">${tx.dateFormatted}</td>
       <td class="py-2.5 px-3 text-center">${typeBadge}</td>
       <td class="py-2.5 px-3 font-mono text-[11px] text-slate-500">${tx.trxId}</td>
       <td class="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300">${tx.isExtra ? '-' : tx.shares}</td>
-      <td class="py-2.5 px-3 text-right font-extrabold text-brand-700 dark:text-brand-400">${formatCurrency(tx.amount)}</td>
+      <td class="py-2.5 px-3 text-right font-extrabold ${tx.isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-emerald-700 dark:text-emerald-400'}">+${formatCurrency(tx.amount)}</td>
       <td class="py-2.5 px-3 text-center">
         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.status === 'Received' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'}">
           ${tx.status}
@@ -4218,8 +4296,8 @@ function renderTablePage() {
 
     const isExtra = tx.isExtra;
     const typeBadge = isExtra ? 
-      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit</span>' :
-      `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Share Capital</span>`;
+      '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit (Credit)</span>' :
+      `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share (Credit)</span>`;
 
     const statusBadge = tx.status === 'Received' ? 
       '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Received</span>' :
@@ -4258,8 +4336,8 @@ function renderTablePage() {
       <td class="py-3 px-4 text-center">
         ${typeBadge}
       </td>
-      <td class="py-3 px-4 text-right font-black ${isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-brand-700 dark:text-brand-400'} text-sm">
-        ${formatCurrency(tx.amount)}
+      <td class="py-3 px-4 text-right font-black ${isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-emerald-700 dark:text-emerald-400'} text-sm">
+        +${formatCurrency(tx.amount)}
       </td>
       <td class="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
         ${isExtra ? '<span class="text-slate-400">-</span>' : tx.shares}
@@ -4514,8 +4592,8 @@ function exportLedgerCSV() {
     'Deposit Date': tx.dateFormatted,
     'Member Name': tx.name,
     'Member ID': tx.id,
-    'Deposit Type': tx.isExtra ? 'Extra Deposit' : 'Regular Share Capital',
-    'Amount (BDT)': tx.amount,
+    'Deposit Type (Credit)': tx.isExtra ? 'Extra Deposit (Credit)' : 'Regular Share Capital (Credit)',
+    'Credited Amount (BDT)': tx.amount,
     'Number of Share': tx.isExtra ? 'N/A' : tx.shares,
     'TRX. ID / Reference': tx.trxId,
     'Status': tx.status,
@@ -4535,10 +4613,10 @@ function exportMembersList() {
     'Member Name': m.name,
     'Member ID': m.id,
     'Contact Phone': m.phone,
-    'Regular Capital (BDT)': m.regularAmount,
+    'Regular Capital (Credit) (BDT)': m.regularAmount,
     'Total Shares': m.totalShares,
-    'Extra Deposits (BDT)': m.extraAmount,
-    'Grand Total (BDT)': m.totalAmount,
+    'Extra Deposits (Credit) (BDT)': m.extraAmount,
+    'Total Credited (BDT)': m.totalAmount,
     'Total Deposits Count': m.depositCount,
     'Pending Dues (BDT)': m.pendingAmount,
     'Status': m.pendingAmount > 0 ? 'Pending Dues' : 'Cleared',
@@ -4588,3 +4666,4 @@ window.handleSaveShareSchedule = handleSaveShareSchedule;
 window.resetShareScheduleToDefault = resetShareScheduleToDefault;
 window.setAdminSubView = setAdminSubView;
 window.openAdminMyProfile = openAdminMyProfile;
+window.setBankLedgerView = setBankLedgerView;

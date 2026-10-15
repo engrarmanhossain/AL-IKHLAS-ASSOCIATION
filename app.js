@@ -46,7 +46,7 @@ const DEFAULT_BANK_DETAILS = {
   accountType: 'Current / Association Account',
   swiftCode: 'MTBLBDDH',
   instructions: 'Deposits can be made via MTB Branch Slips, BEFTN, NPSB, RTGS, or Internet Banking. Please mention your Full Name & Month in deposit remarks.',
-  liquidBalance: 22565.41,
+  liquidBalance: 23062.41,
   updatedAt: '16 Oct 2026',
   updatedBy: 'Admin / President'
 };
@@ -182,26 +182,6 @@ const DEFAULT_BANK_LEDGER = [
     rest: 562.41,
     balanceAfter: 562.41,
     message: 'Assalamu Alaikum.Your A/C 999101****351 has been debited by BDT 50,000.00 on 07-SEP-26, 06:42:21 PM.Available balance BDT 562.41. MTB Hotline 16219'
-  },
-  {
-    dateFormatted: '08-Sep-2026',
-    date: new Date('2026-09-08'),
-    cause: 'profit from investment',
-    type: 'Profit',
-    amount: 1.00,
-    rest: 1562.41,
-    balanceAfter: 1562.41,
-    message: 'A'
-  },
-  {
-    dateFormatted: '09-Sep-2026',
-    date: new Date('2026-09-09'),
-    cause: 'IR Deposit',
-    type: 'IR Deposit',
-    amount: 2.00,
-    rest: 2562.41,
-    balanceAfter: 2562.41,
-    message: 'B'
   }
 ];
 
@@ -406,10 +386,11 @@ let state = {
     totalWithdrawn: 300000,
     totalDebited: 825.02,
     totalCredited: 887.43,
-    totalProfit: 1.00,
-    totalProfitAmount: 1.00,
-    totalIrDeposit: 2.00,
-    bankBalance: 22565.41,
+    totalProfit: 0,
+    totalProfitAmount: 0,
+    totalIrDeposit: 0,
+    totalDirectDeposits: 500.00,
+    bankBalance: 23062.41,
     bankName: 'Mutual Trust Bank PLC',
     bankAccount: '999101****351',
     investment: {
@@ -750,7 +731,7 @@ function renderBankDetailsModalContent() {
   viewContainer.classList.remove('hidden');
 
   const b = state.bankDetails || DEFAULT_BANK_DETAILS;
-  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 22562.41;
+  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 23062.41;
   const canEdit = canEditBankDetails();
 
   viewContainer.innerHTML = `
@@ -3490,7 +3471,7 @@ function processDebitedSheetData(rows) {
     const isProfit = typeLower === 'profit' || causeLower.includes('profit');
     const isIrDeposit = typeLower.includes('ir deposit') || typeLower.includes('ir deposite') || causeLower.includes('ir deposit') || causeLower.includes('ir deposite');
     const isDeposit = !isIrDeposit && (typeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit'));
-    const isInterestCredit = typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited');
+    const isInterestCredit = !isProfit && !isIrDeposit && !isDeposit && (typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited'));
     const isCredit = isProfit || isIrDeposit || isDeposit || isInterestCredit;
     const isWithdraw = typeLower === 'withdraw' || (!isCredit && (amt >= 50000 || causeLower.includes('withdraw')));
 
@@ -3532,12 +3513,11 @@ function processDebitedSheetData(rows) {
     if (totalDeb > 0) state.treasury.totalDebited = totalDeb;
     if (totalCred > 0) state.treasury.totalCredited = totalCred;
     if (totalWith > 0) state.treasury.totalWithdrawn = totalWith;
-    if (totalProfit > 0) {
-      state.treasury.totalProfit = totalProfit;
-      state.treasury.totalProfitAmount = totalProfit;
-    }
-    if (totalIrDep > 0) state.treasury.totalIrDeposit = totalIrDep;
-    if (totalDirectDeposits > 0) state.treasury.totalDirectDeposits = totalDirectDeposits;
+    state.treasury.totalProfit = totalProfit;
+    state.treasury.totalProfitAmount = totalProfit;
+    state.treasury.totalIrDeposit = totalIrDep;
+    state.treasury.totalDirectDeposits = totalDirectDeposits;
+    recalculateLiquidBalance();
     renderTreasuryCards();
     renderBankLedgerTable();
   }
@@ -3559,8 +3539,7 @@ function processSummarySheetData(rows) {
         const valRight = (row[c + 1] !== undefined && row[c + 1] !== '') ? parseFloat(row[c + 1]) : NaN;
         const candidate = !isNaN(valBelow) && valBelow > 0 ? valBelow : (!isNaN(valRight) && valRight > 0 ? valRight : null);
         if (candidate !== null) {
-          state.treasury.bankBalance = candidate;
-          state.treasury.availableLiquidity = candidate;
+          state.treasury.restOfAmount = candidate;
         }
       }
 
@@ -3600,34 +3579,30 @@ function processSummarySheetData(rows) {
       // Look for "total ir deposit" or "total ir deposite"
       if (cellStr.includes('total ir deposit') || cellStr.includes('total ir deposite')) {
         const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
-        if (!isNaN(valBelow) && valBelow > 0) {
-          state.treasury.totalIrDeposit = valBelow;
+        if (!isNaN(valBelow)) {
+          state.treasury.summaryIrDeposit = valBelow;
         }
       }
 
       // Look for "total profit amount"
       if (cellStr.includes('total profit amount')) {
         const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
-        if (!isNaN(valBelow) && valBelow > 0) {
-          state.treasury.totalProfit = valBelow;
-          state.treasury.totalProfitAmount = valBelow;
+        if (!isNaN(valBelow)) {
+          state.treasury.summaryProfit = valBelow;
         }
       }
 
       // Look for "frist deposit amount" or "first deposit amount"
       if (cellStr.includes('frist deposit amount') || cellStr.includes('first deposit amount')) {
         const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
-        if (!isNaN(valBelow) && valBelow > 0) {
+        if (!isNaN(valBelow)) {
           state.treasury.firstDepositAmount = valBelow;
         }
       }
     }
   }
 
-  if (state.bankDetails) {
-    state.bankDetails.liquidBalance = state.treasury.bankBalance;
-  }
-
+  recalculateLiquidBalance();
   renderTreasuryCards();
   renderBankLedgerTable();
 }
@@ -3838,22 +3813,56 @@ function recalculateLiquidBalance() {
   const totalInv = state.treasury.totalWithdrawn || 300000;
   const totalDeb = state.treasury.totalDebited || 825.02;
   const totalInterest = state.treasury.totalCredited || 887.43;
-  const totalProfit = state.treasury.totalProfitAmount || state.treasury.totalProfit || 0;
-  const totalIrDep = state.treasury.totalIrDeposit || 0;
 
-  // Formula: Liquid Bank Balance = Total Deposited - Active Investment - Bank Fees + Credited Interest + IR Deposit + Profit
-  const calculatedLiquid = totalDep - totalInv - totalDeb + totalInterest + totalIrDep + totalProfit;
+  // Base bank balance before special listed transactions:
+  // Base = Total Member Deposits - Active Investment - Bank Maintenance Fees + Bank Credited Interest
+  const baseRest = (state.treasury.restOfAmount !== undefined && state.treasury.restOfAmount > 0)
+    ? state.treasury.restOfAmount
+    : (totalDep - totalInv - totalDeb + totalInterest);
 
-  // If summary sheet already gave authentic Rest of Amount, honor it; otherwise use calculatedLiquid
-  if (state.treasury.bankBalance && Math.abs(state.treasury.bankBalance - calculatedLiquid) < 0.05) {
-    // Keep exact summary sheet value (e.g. 22565.41)
-  } else if (!isNaN(calculatedLiquid) && calculatedLiquid > 0) {
-    state.treasury.bankBalance = calculatedLiquid;
-    state.treasury.availableLiquidity = calculatedLiquid;
-  }
+  // Scan listed ledger entries (bankDebits / DEFAULT_BANK_LEDGER)
+  // RULE: ONLY when listed amount type is Deposit, IR Deposit, or Profit, add that amount.
+  // Otherwise NOT.
+  const entries = (state.treasury.bankDebits && state.treasury.bankDebits.length > 0)
+    ? state.treasury.bankDebits
+    : DEFAULT_BANK_LEDGER;
+
+  let listedDeposit = 0;
+  let listedIrDeposit = 0;
+  let listedProfit = 0;
+
+  entries.forEach(item => {
+    const typeLower = (item.type || '').toString().toLowerCase().trim();
+    const causeLower = (item.cause || '').toString().toLowerCase().trim();
+    const amt = parseFloat(item.amount) || 0;
+
+    const isProfit = typeLower === 'profit' || causeLower.includes('profit');
+    const isIrDeposit = typeLower.includes('ir deposit') || typeLower.includes('ir deposite') || causeLower.includes('ir deposit') || causeLower.includes('ir deposite');
+    const isDeposit = !isIrDeposit && (typeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit'));
+
+    if (isProfit) {
+      listedProfit += amt;
+    } else if (isIrDeposit) {
+      listedIrDeposit += amt;
+    } else if (isDeposit) {
+      listedDeposit += amt;
+    }
+  });
+
+  // Sync state treasury properties with exact listed amounts (0 if not listed)
+  state.treasury.totalDirectDeposits = listedDeposit;
+  state.treasury.totalIrDeposit = listedIrDeposit;
+  state.treasury.totalProfit = listedProfit;
+  state.treasury.totalProfitAmount = listedProfit;
+
+  // Final Liquid Bank Balance = Base + listed Deposit + listed IR Deposit + listed Profit
+  const finalLiquidBalance = baseRest + listedDeposit + listedIrDeposit + listedProfit;
+
+  state.treasury.bankBalance = finalLiquidBalance;
+  state.treasury.availableLiquidity = finalLiquidBalance;
 
   if (state.bankDetails) {
-    state.bankDetails.liquidBalance = state.treasury.bankBalance;
+    state.bankDetails.liquidBalance = finalLiquidBalance;
   }
 
   renderTreasuryCards();
@@ -3955,13 +3964,19 @@ function processRawData(rows, triggerToast = false) {
       const causeLower = cause.toLowerCase();
       const rawTypeLower = String(rawType || '').toLowerCase().trim();
 
-      const isDeposit = rawTypeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit') || (fallbackEntry?.type === 'Deposit');
-      const isInterest = causeLower.includes('interest') || (fallbackEntry?.cause && fallbackEntry.cause.toLowerCase().includes('interest'));
-      const isCredit = isDeposit || rawTypeLower === 'credit' || isInterest || (fallbackEntry?.type === 'Credit');
-      const isWithdraw = rawTypeLower === 'withdraw' || (!isDeposit && !isCredit && (debitAmt >= 50000 || causeLower.includes('withdraw') || fallbackEntry?.type === 'Withdraw'));
+      const isProfit = rawTypeLower === 'profit' || causeLower.includes('profit') || (fallbackEntry?.type === 'Profit');
+      const isIrDeposit = rawTypeLower.includes('ir deposit') || rawTypeLower.includes('ir deposite') || causeLower.includes('ir deposit') || causeLower.includes('ir deposite') || (fallbackEntry?.type === 'IR Deposit');
+      const isDeposit = !isIrDeposit && (rawTypeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit') || (fallbackEntry?.type === 'Deposit'));
+      const isInterest = !isProfit && !isIrDeposit && !isDeposit && (causeLower.includes('interest') || (fallbackEntry?.cause && fallbackEntry.cause.toLowerCase().includes('interest')));
+      const isCredit = isProfit || isIrDeposit || isDeposit || rawTypeLower === 'credit' || isInterest || (fallbackEntry?.type === 'Credit');
+      const isWithdraw = rawTypeLower === 'withdraw' || (!isProfit && !isIrDeposit && !isDeposit && !isCredit && (debitAmt >= 50000 || causeLower.includes('withdraw') || fallbackEntry?.type === 'Withdraw'));
 
       let type = 'Debit';
-      if (isDeposit) {
+      if (isProfit) {
+        type = 'Profit';
+      } else if (isIrDeposit) {
+        type = 'IR Deposit';
+      } else if (isDeposit) {
         type = 'Deposit';
       } else if (isCredit) {
         type = 'Credit';
@@ -3996,7 +4011,7 @@ function processRawData(rows, triggerToast = false) {
       if (row[6] && !isNaN(parseFloat(row[6]))) {
         const val = parseFloat(row[6]);
         if (val > 100000) state.treasury.totalDeposited = val;
-        else if (val > 20000 && val < 50000) state.treasury.bankBalance = val;
+        else if (val > 20000 && val < 50000) state.treasury.restOfAmount = val;
       }
       if (row[8] && !isNaN(parseFloat(row[8]))) {
         const val = parseFloat(row[8]);
@@ -4148,6 +4163,7 @@ function processRawData(rows, triggerToast = false) {
 
   populateFilterDropdowns();
   updateKPIs();
+  recalculateLiquidBalance();
   renderTreasuryCards();
   renderBankLedgerTable();
   renderCharts();
@@ -4292,7 +4308,7 @@ function renderBankLedgerTable() {
   const totalInterest = state.treasury.totalCredited || 887.43;
   const totalDebits = (state.treasury.totalWithdrawn || 300000.00) + (state.treasury.totalDebited || 825.02);
 
-  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22565.41);
+  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23062.41);
   if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
   if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
   if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalInterest);
@@ -4306,7 +4322,7 @@ function renderBankLedgerTable() {
   if (debitsBannerEl) debitsBannerEl.textContent = formatDecimalCurrency(totalDebits);
 
   const netLiquidBannerEl = document.getElementById('bank-ledger-net-liquid-banner');
-  if (netLiquidBannerEl) netLiquidBannerEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22565.41);
+  if (netLiquidBannerEl) netLiquidBannerEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23062.41);
 
   if (currentBankLedgerView === 'deposits') {
     // Show all credited member deposits

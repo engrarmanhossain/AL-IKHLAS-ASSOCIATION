@@ -1278,14 +1278,14 @@
   </div>
 
   <!-- MODAL: BANK ACCOUNT LEDGER & DEBITS STATEMENT -->
-  <div id="modal-bank-ledger" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-8">
-      <button onclick="closeBankLedgerModal()" class="absolute right-5 top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
+  <div id="modal-bank-ledger" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-auto max-h-[94vh] flex flex-col">
+      <button onclick="closeBankLedgerModal()" class="absolute right-4 top-4 sm:right-5 sm:top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg z-10 p-1">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950 flex items-center justify-center text-lg">
+      <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800 mb-3 shrink-0 pr-8">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950 flex items-center justify-center text-lg shrink-0">
           <i class="fa-solid fa-building-columns"></i>
         </div>
         <div>
@@ -1294,75 +1294,78 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Bank Liquid Balance</span>
-          <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="bank-ledger-modal-balance">৳ 22,562.41</span>
-        </div>
-        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Invested (Withdrawn)</span>
-          <span class="text-sm font-black text-blue-600 dark:text-blue-400 block mt-0.5" id="bank-ledger-modal-invest">৳ 300,000.00</span>
-        </div>
-        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Fees (Debit)</span>
-          <span class="text-sm font-black text-rose-600 dark:text-rose-400 block mt-0.5" id="bank-ledger-modal-fees">৳ 825.02</span>
-        </div>
-        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Interest (Credit)</span>
-          <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="bank-ledger-modal-interest">+৳ 887.43</span>
-        </div>
-      </div>
-
-      <!-- Accounting Rule & Credit Reconciliation Banner -->
-      <div class="mb-4 p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 text-xs">
-        <div class="flex items-start gap-2.5">
-          <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs mt-0.5 shadow-sm">
-            <i class="fa-solid fa-scale-balanced"></i>
+      <!-- Scrollable Inner Content Area -->
+      <div class="overflow-y-auto flex-1 min-h-0 pr-1 space-y-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Bank Liquid Balance</span>
+            <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="bank-ledger-modal-balance">৳ 22,562.41</span>
           </div>
-          <div class="flex-1 space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-emerald-900 dark:text-emerald-200">Accounting Principle: Member Deposits are Recorded as Direct Credit</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-200/70 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Audited Reconciled</span>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Invested (Withdrawn)</span>
+            <span class="text-sm font-black text-blue-600 dark:text-blue-400 block mt-0.5" id="bank-ledger-modal-invest">৳ 300,000.00</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Fees (Debit)</span>
+            <span class="text-sm font-black text-rose-600 dark:text-rose-400 block mt-0.5" id="bank-ledger-modal-fees">৳ 825.02</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Interest (Credit)</span>
+            <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="bank-ledger-modal-interest">+৳ 887.43</span>
+          </div>
+        </div>
+
+        <!-- Accounting Rule & Credit Reconciliation Banner -->
+        <div class="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 text-xs">
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs mt-0.5 shadow-sm">
+              <i class="fa-solid fa-scale-balanced"></i>
             </div>
-            <p class="text-[11px] text-slate-600 dark:text-slate-300">
-              Every deposit into Association accounts is an active Credit inflow. Member Deposits Credited (<strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-member-credits">৳ 322,500.00</strong>) + Bank Interest Credited (<strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-interest-credits">+৳ 887.43</strong>) = Total Inflow <strong class="text-emerald-800 dark:text-emerald-200" id="bank-ledger-total-credits">৳ 323,387.43</strong>. Total Debited (Investment + Fees) = <strong class="text-rose-700 dark:text-rose-400" id="bank-ledger-total-debits-banner">৳ 300,825.02</strong>. Net Liquid Balance = <strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-net-liquid-banner">৳ 22,565.41</strong>.
-            </p>
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-emerald-900 dark:text-emerald-200">Accounting Principle: Member Deposits are Recorded as Direct Credit</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-200/70 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Audited Reconciled</span>
+              </div>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300">
+                Every deposit into Association accounts is an active Credit inflow. Member Deposits Credited (<strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-member-credits">৳ 322,500.00</strong>) + Bank Interest Credited (<strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-interest-credits">+৳ 887.43</strong>) = Total Inflow <strong class="text-emerald-800 dark:text-emerald-200" id="bank-ledger-total-credits">৳ 323,387.43</strong>. Total Debited (Investment + Fees) = <strong class="text-rose-700 dark:text-rose-400" id="bank-ledger-total-debits-banner">৳ 300,825.02</strong>. Net Liquid Balance = <strong class="text-emerald-700 dark:text-emerald-300" id="bank-ledger-net-liquid-banner">৳ 22,565.41</strong>.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Ledger View Filter Buttons -->
-      <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 dark:border-slate-800">
-        <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs">
-          <button type="button" onclick="setBankLedgerView('debits')" id="btn-ledger-debits" class="px-3 py-1.5 rounded-lg font-bold transition bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm flex items-center gap-1.5">
-            <i class="fa-solid fa-receipt"></i>
-            <span>Bank Maintenance &amp; Debits</span>
-          </button>
-          <button type="button" onclick="setBankLedgerView('deposits')" id="btn-ledger-deposits" class="px-3 py-1.5 rounded-lg font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5">
-            <i class="fa-solid fa-coins"></i>
-            <span>All Member Deposit Credits</span>
-          </button>
+        <!-- Ledger View Filter Buttons -->
+        <div class="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs">
+            <button type="button" onclick="setBankLedgerView('debits')" id="btn-ledger-debits" class="px-3 py-1.5 rounded-lg font-bold transition bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-receipt"></i>
+              <span>Bank Maintenance &amp; Debits</span>
+            </button>
+            <button type="button" onclick="setBankLedgerView('deposits')" id="btn-ledger-deposits" class="px-3 py-1.5 rounded-lg font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-coins"></i>
+              <span>All Member Deposit Credits</span>
+            </button>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500" id="bank-ledger-view-count">14 Entries</span>
         </div>
-        <span class="text-[11px] font-mono text-slate-500" id="bank-ledger-view-count">14 Entries</span>
+
+        <div class="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-2xl">
+          <table class="w-full text-left text-xs whitespace-nowrap">
+            <thead id="bank-ledger-thead" class="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold uppercase text-slate-500 sticky top-0">
+              <tr>
+                <th class="py-2.5 px-3">Date</th>
+                <th class="py-2.5 px-3">Transaction Cause</th>
+                <th class="py-2.5 px-3 text-center">Type</th>
+                <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
+                <th class="py-2.5 px-3 text-right text-brand-700 dark:text-brand-300 bg-brand-50/60 dark:bg-brand-950/40 border-x border-brand-200/60 dark:border-brand-800/60 font-black">Balance After (BDT)</th>
+                <th class="py-2.5 px-3">Bank SMS Alert Notice</th>
+              </tr>
+            </thead>
+            <tbody id="bank-ledger-tbody" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]"></tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="overflow-x-auto max-h-96">
-        <table class="w-full text-left text-xs whitespace-nowrap">
-          <thead id="bank-ledger-thead" class="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-bold uppercase text-slate-500 sticky top-0">
-            <tr>
-              <th class="py-2.5 px-3">Date</th>
-              <th class="py-2.5 px-3">Transaction Cause</th>
-              <th class="py-2.5 px-3 text-center">Type</th>
-              <th class="py-2.5 px-3 text-right">Amount (BDT)</th>
-              <th class="py-2.5 px-3 text-right text-brand-700 dark:text-brand-300 bg-brand-50/60 dark:bg-brand-950/40 border-x border-brand-200/60 dark:border-brand-800/60 font-black">Balance After (BDT)</th>
-              <th class="py-2.5 px-3">Bank SMS Alert Notice</th>
-            </tr>
-          </thead>
-          <tbody id="bank-ledger-tbody" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]"></tbody>
-        </table>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800 mt-4">
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 mt-2 shrink-0">
         <button type="button" onclick="closeBankLedgerModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 transition">
           Close Ledger
         </button>
@@ -1371,14 +1374,14 @@
   </div>
 
   <!-- MODAL: ACTIVE BUSINESS INVESTMENT DETAILS -->
-  <div id="modal-investment" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-8">
-      <button onclick="closeInvestmentModal()" class="absolute right-5 top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
+  <div id="modal-investment" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-auto max-h-[94vh] flex flex-col">
+      <button onclick="closeInvestmentModal()" class="absolute right-4 top-4 sm:right-5 sm:top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg z-10 p-1">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
-        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950 flex items-center justify-center text-lg">
+      <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800 mb-3 shrink-0 pr-8">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950 flex items-center justify-center text-lg shrink-0">
           <i class="fa-solid fa-cow"></i>
         </div>
         <div>
@@ -1387,7 +1390,7 @@
         </div>
       </div>
 
-      <div class="space-y-4 text-xs">
+      <div class="overflow-y-auto flex-1 min-h-0 pr-1 space-y-4 text-xs">
         <div class="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-slate-500 uppercase text-[10px] font-bold">Business Name</span>
@@ -1424,7 +1427,7 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 mt-5">
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 mt-2 shrink-0">
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400" id="invest-modal-sync-badge">Live Synced with Sheet: Investment</span>
@@ -1437,7 +1440,7 @@
   </div>
 
   <!-- MODAL: OFFICIAL BANK ACCOUNT DETAILS (VIEWABLE BY ALL, EDIT RESTRICTED TO ADMIN & ACCOUNTANT) -->
-  <div id="modal-bank-details" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+  <div id="modal-bank-details" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-auto max-h-[92vh] flex flex-col">
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 mb-3 shrink-0">

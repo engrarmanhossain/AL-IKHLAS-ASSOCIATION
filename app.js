@@ -4037,6 +4037,9 @@ function openBankLedgerModal() {
   if (m) {
     m.classList.remove('hidden');
     m.classList.add('flex');
+    m.scrollTop = 0;
+    const body = m.querySelector('.overflow-y-auto');
+    if (body) body.scrollTop = 0;
   }
 }
 
@@ -4054,6 +4057,9 @@ function openInvestmentModal() {
   if (m) {
     m.classList.remove('hidden');
     m.classList.add('flex');
+    m.scrollTop = 0;
+    const body = m.querySelector('.overflow-y-auto');
+    if (body) body.scrollTop = 0;
   }
 }
 

@@ -17,6 +17,7 @@ const CONFIG = {
   STORAGE_KEY_LOGO: 'al_ikhlas_association_logo_v1',
   STORAGE_KEY_SCHEDULE: 'al_ikhlas_share_schedule_v1',
   STORAGE_KEY_BANK: 'al_ikhlas_bank_details_v1',
+  STORAGE_KEY_INVESTMENT: 'al_ikhlas_investment_cache_v1',
 };
 
 // 11-Year Official Financial Year Share & Extra Schedule (2025-2026 to 2035-2036)
@@ -496,6 +497,22 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Cache error:', e);
     }
   }
+
+  // Load cached investment data if available
+  const cachedInv = localStorage.getItem(CONFIG.STORAGE_KEY_INVESTMENT);
+  if (cachedInv) {
+    try {
+      const parsedInv = JSON.parse(cachedInv);
+      if (parsedInv && typeof parsedInv === 'object') {
+        state.treasury.investment = Object.assign(state.treasury.investment || {}, parsedInv);
+        if (parsedInv.amount) {
+          state.treasury.totalWithdrawn = parsedInv.amount;
+          state.treasury.activeInvestment = parsedInv.amount;
+        }
+      }
+    } catch (e) {}
+  }
+  renderInvestmentModalContent();
 
   // Fetch live fresh data from Apps Script
   fetchLiveData();
@@ -2905,12 +2922,14 @@ async function fetchLiveData(isManual = false) {
   const fullUrl = `${apiUrl}?token=${encodeURIComponent(token)}&_t=${Date.now()}`;
   const debitSheetUrl = `${apiUrl}?token=${encodeURIComponent(token)}&gid=1208245608&_t=${Date.now()}`;
   const summarySheetUrl = `${apiUrl}?token=${encodeURIComponent(token)}&gid=1874744243&_t=${Date.now()}`;
+  const investSheetUrl = `${apiUrl}?token=${encodeURIComponent(token)}&gid=313675577&_t=${Date.now()}`;
 
   try {
-    const [response, debitResponse, summaryResponse] = await Promise.all([
+    const [response, debitResponse, summaryResponse, investResponse] = await Promise.all([
       fetch(fullUrl, { method: 'GET', cache: 'no-store' }),
       fetch(debitSheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null),
-      fetch(summarySheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null)
+      fetch(summarySheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null),
+      fetch(investSheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null)
     ]);
 
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
@@ -2950,6 +2969,18 @@ async function fetchLiveData(isManual = false) {
         }
       } catch (sumErr) {
         console.warn('Summary sheet parse error:', sumErr);
+      }
+    }
+
+    // If dedicated investment sheet returned live data, synchronize Active Business Investment
+    if (investResponse && investResponse.ok) {
+      try {
+        const investResult = await investResponse.json();
+        if (investResult && investResult.data && Array.isArray(investResult.data) && investResult.data.length > 1) {
+          processInvestmentSheetData(investResult.data);
+        }
+      } catch (invErr) {
+        console.warn('Investment sheet parse error:', invErr);
       }
     }
 
@@ -3144,6 +3175,193 @@ function processSummarySheetData(rows) {
 
   renderTreasuryCards();
   renderBankLedgerTable();
+}
+
+// Process exact Investment Sheet (gid 313675577) for Active Business Investment
+function processInvestmentSheetData(rows) {
+  if (!rows || rows.length <= 1) return;
+
+  // Build row lookup map: descriptor string -> row index
+  const rowMap = {};
+  for (let r = 0; r < rows.length; r++) {
+    const desc = (rows[r] && rows[r][0] !== undefined ? rows[r][0] : '').toString().toLowerCase().trim();
+    if (desc.includes('date')) rowMap.date = r;
+    else if (desc.includes('buisness name') || desc.includes('business name')) rowMap.businessName = r;
+    else if (desc.includes('buisness id') || desc.includes('business id')) rowMap.businessId = r;
+    else if (desc.includes('owner name')) rowMap.ownerName = r;
+    else if (desc.includes('owner nid')) rowMap.ownerNid = r;
+    else if (desc.includes('contract number') || desc.includes('contact number') || desc.includes('phone') || desc.includes('mobile')) rowMap.contact = r;
+    else if (desc.includes('invest amount') || desc.includes('investment amount')) rowMap.investAmount = r;
+    else if (desc.includes('profit per month') || desc.includes('per month')) rowMap.profitPerMonth = r;
+    else if (desc.includes('profit share')) rowMap.profitShare = r;
+    else if (desc.includes('total profit')) rowMap.totalProfit = r;
+    else if (desc.includes('contact time') || desc.includes('contract time') || desc.includes('duration') || desc.includes('month') || desc.includes('time')) rowMap.duration = r;
+  }
+
+  const colHeader = rows[0] || [];
+  let primaryCol = 1;
+  for (let c = 1; c < colHeader.length; c++) {
+    const bName = (rowMap.businessName !== undefined && rows[rowMap.businessName]) ? (rows[rowMap.businessName][c] || '').toString().trim() : '';
+    const amtStr = (rowMap.investAmount !== undefined && rows[rowMap.investAmount]) ? (rows[rowMap.investAmount][c] || '').toString().trim() : '';
+    if (bName || amtStr) {
+      primaryCol = c;
+      break;
+    }
+  }
+
+  const rawDate = (rowMap.date !== undefined && rows[rowMap.date]) ? (rows[rowMap.date][primaryCol] || '').toString().trim() : '';
+  const rawBusiness = (rowMap.businessName !== undefined && rows[rowMap.businessName]) ? (rows[rowMap.businessName][primaryCol] || '').toString().trim() : '';
+  const rawOwner = (rowMap.ownerName !== undefined && rows[rowMap.ownerName]) ? (rows[rowMap.ownerName][primaryCol] || '').toString().trim() : '';
+  const rawContact = (rowMap.contact !== undefined && rows[rowMap.contact]) ? (rows[rowMap.contact][primaryCol] || '').toString().trim() : '';
+  const rawAmount = (rowMap.investAmount !== undefined && rows[rowMap.investAmount]) ? (rows[rowMap.investAmount][primaryCol] || '').toString().trim() : '';
+  const rawTerms = (rowMap.profitShare !== undefined && rows[rowMap.profitShare]) ? (rows[rowMap.profitShare][primaryCol] || '').toString().trim() : '';
+  const rawDuration = (rowMap.duration !== undefined && rows[rowMap.duration]) ? (rows[rowMap.duration][primaryCol] || '').toString().trim() : '';
+  const rawTotalProfit = (rowMap.totalProfit !== undefined && rows[rowMap.totalProfit]) ? parseFloat(rows[rowMap.totalProfit][primaryCol]) || 0 : 0;
+
+  // Calculate parsed sum of investment amount for primary column
+  let totalInvestAmt = 0;
+  const amountParts = [];
+  if (rawAmount) {
+    const parts = rawAmount.split('+');
+    parts.forEach(p => {
+      const cleanNum = parseFloat(p.toString().replace(/,/g, '').trim()) || 0;
+      if (cleanNum > 0) {
+        amountParts.push(cleanNum);
+        totalInvestAmt += cleanNum;
+      }
+    });
+  }
+  if (totalInvestAmt === 0 && !isNaN(parseFloat(rawAmount.toString().replace(/,/g, '')))) {
+    totalInvestAmt = parseFloat(rawAmount.toString().replace(/,/g, '')) || 0;
+  }
+
+  // Calculate grand total across all investment columns if multiple exists
+  let grandTotalInvestment = 0;
+  for (let c = 1; c < colHeader.length; c++) {
+    const colAmtStr = (rowMap.investAmount !== undefined && rows[rowMap.investAmount]) ? (rows[rowMap.investAmount][c] || '').toString().trim() : '';
+    if (colAmtStr) {
+      colAmtStr.split('+').forEach(p => {
+        const val = parseFloat(p.toString().replace(/,/g, '').trim()) || 0;
+        if (val > 0) grandTotalInvestment += val;
+      });
+    }
+  }
+  if (grandTotalInvestment === 0 && totalInvestAmt > 0) {
+    grandTotalInvestment = totalInvestAmt;
+  }
+
+  // Format Tranches
+  let tranchesFormatted = '';
+  if (rawDate && amountParts.length > 0) {
+    const dateParts = rawDate.split(',').map(s => s.trim());
+    const trancheStrings = [];
+    amountParts.forEach((amt, idx) => {
+      const d = dateParts[idx] || (dateParts[0] || '');
+      trancheStrings.push(`৳ ${amt.toLocaleString('en-IN')}${d ? ` (${d})` : ''}`);
+    });
+    tranchesFormatted = trancheStrings.join(' + ');
+  } else if (rawAmount) {
+    tranchesFormatted = `৳ ${totalInvestAmt.toLocaleString('en-IN')}${rawDate ? ` (${rawDate})` : ''}`;
+  }
+
+  // Format Duration
+  let durationStr = '1 Year';
+  const durationMonths = parseInt(rawDuration, 10);
+  if (!isNaN(durationMonths) && durationMonths > 0) {
+    if (durationMonths === 12) {
+      durationStr = '1 Year';
+    } else if (durationMonths % 12 === 0) {
+      durationStr = `${durationMonths / 12} Years`;
+    } else {
+      durationStr = `${durationMonths} Months`;
+    }
+  } else if (rawDuration) {
+    durationStr = rawDuration;
+  }
+
+  // Format Contact
+  let contactStr = rawContact;
+  if (contactStr && !contactStr.startsWith('+') && contactStr.startsWith('880')) {
+    contactStr = '+' + contactStr;
+  }
+
+  // Update state.treasury.investment
+  if (!state.treasury.investment) state.treasury.investment = {};
+  if (rawBusiness) state.treasury.investment.name = rawBusiness;
+  if (rawOwner) state.treasury.investment.owner = rawOwner;
+  if (contactStr) state.treasury.investment.phone = contactStr;
+  if (totalInvestAmt > 0) state.treasury.investment.amount = totalInvestAmt;
+  if (tranchesFormatted) state.treasury.investment.tranches = tranchesFormatted;
+  state.treasury.investment.duration = durationStr;
+  state.treasury.investment.months = !isNaN(durationMonths) && durationMonths > 0 ? durationMonths : 12;
+  if (rawTerms) state.treasury.investment.terms = rawTerms;
+  state.treasury.investment.totalProfit = rawTotalProfit;
+  const colSlotName = (colHeader[primaryCol] || '').toString().trim();
+  state.treasury.investment.title = colSlotName ? `Active Business Investment (${colSlotName})` : 'Active Business Investment #1';
+
+  if (grandTotalInvestment > 0) {
+    state.treasury.totalWithdrawn = grandTotalInvestment;
+    state.treasury.activeInvestment = grandTotalInvestment;
+  }
+
+  try {
+    localStorage.setItem(CONFIG.STORAGE_KEY_INVESTMENT || 'al_ikhlas_investment_cache_v1', JSON.stringify(state.treasury.investment));
+  } catch (e) {}
+
+  renderTreasuryCards();
+  renderInvestmentModalContent();
+}
+
+// Render dynamic investment modal details
+function renderInvestmentModalContent() {
+  const inv = state.treasury && state.treasury.investment ? state.treasury.investment : null;
+  if (!inv) return;
+
+  const titleEl = document.getElementById('invest-modal-title');
+  const bNameEl = document.getElementById('invest-modal-business-name');
+  const ownerEl = document.getElementById('invest-modal-owner-name');
+  const contactEl = document.getElementById('invest-modal-contact');
+  const amtEl = document.getElementById('invest-modal-amount');
+  const tranchesEl = document.getElementById('invest-modal-tranches');
+  const contractEl = document.getElementById('invest-modal-contract');
+  const termsEl = document.getElementById('invest-modal-terms');
+  const trackingEl = document.getElementById('invest-modal-tracking');
+  const badgeEl = document.getElementById('invest-modal-sync-badge');
+
+  if (titleEl) titleEl.textContent = inv.title || 'Active Business Investment #1';
+  if (bNameEl) bNameEl.textContent = inv.name || 'M/S MONOARA DAIRY FARM';
+
+  if (ownerEl) {
+    let ownerDisplay = inv.owner || 'Ikhtiar Uddin';
+    const matchUser = (state.users || []).find(u => u.name && u.name.toLowerCase().trim() === ownerDisplay.toLowerCase().trim()) ||
+                      (DEFAULT_USERS || []).find(u => u.name && u.name.toLowerCase().trim() === ownerDisplay.toLowerCase().trim());
+    if (matchUser && matchUser.role && !ownerDisplay.includes('(')) {
+      ownerDisplay = `${ownerDisplay} (${matchUser.role})`;
+    }
+    ownerEl.textContent = ownerDisplay;
+  }
+
+  if (contactEl) {
+    let phone = inv.phone || '+8801600102219';
+    if (phone && !phone.startsWith('+') && phone.startsWith('880')) {
+      phone = '+' + phone;
+    }
+    contactEl.textContent = phone;
+  }
+
+  if (amtEl) amtEl.textContent = formatCurrency(inv.amount || 300000);
+  if (tranchesEl) tranchesEl.textContent = inv.tranches || '৳ 2,50,000 (27/07/2026) + ৳ 50,000 (07/09/2026)';
+  if (contractEl) contractEl.textContent = inv.duration || '1 Year';
+  if (termsEl) termsEl.textContent = inv.terms || 'Depend On Profit';
+  if (trackingEl) {
+    const months = inv.months || 12;
+    const profit = inv.totalProfit || 0;
+    trackingEl.textContent = profit > 0 ? `${months} Months (Profit: ${formatCurrency(profit)})` : `${months} Monthly Cycles (In Progress)`;
+  }
+  if (badgeEl) {
+    const timeStr = state.lastUpdated ? state.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+    badgeEl.textContent = timeStr ? `Live Synced with Sheet: Investment (${timeStr})` : 'Live Synced with Sheet: Investment (gid=313675577)';
+  }
 }
 
 // Dynamic Real-Time Liquid Bank Balance Calculation Engine
@@ -3560,11 +3778,18 @@ function renderTreasuryCards() {
   const investEl = document.getElementById('treasury-invest-amount');
   const debitedEl = document.getElementById('treasury-debited-amount');
   const creditedEl = document.getElementById('treasury-credited-amount');
+  const investSubtextEl = document.getElementById('treasury-invest-subtext');
 
   if (bankEl) bankEl.textContent = formatDecimalCurrency(state.treasury.bankBalance);
   if (investEl) investEl.textContent = formatCurrency(state.treasury.totalWithdrawn);
   if (debitedEl) debitedEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
   if (creditedEl) creditedEl.textContent = '+' + formatDecimalCurrency(state.treasury.totalCredited || 887.43);
+
+  if (investSubtextEl && state.treasury.investment) {
+    const inv = state.treasury.investment;
+    const durStr = inv.duration ? ` (${inv.duration})` : '';
+    investSubtextEl.textContent = `${inv.name || 'M/S MONOARA DAIRY FARM'}${durStr}`;
+  }
 }
 
 let currentBankLedgerView = 'debits';
@@ -3718,6 +3943,7 @@ function closeBankLedgerModal() {
 }
 
 function openInvestmentModal() {
+  renderInvestmentModalContent();
   const m = document.getElementById('modal-investment');
   if (m) {
     m.classList.remove('hidden');
@@ -4715,3 +4941,6 @@ window.resetShareScheduleToDefault = resetShareScheduleToDefault;
 window.setAdminSubView = setAdminSubView;
 window.openAdminMyProfile = openAdminMyProfile;
 window.setBankLedgerView = setBankLedgerView;
+window.openInvestmentModal = openInvestmentModal;
+window.closeInvestmentModal = closeInvestmentModal;
+window.renderInvestmentModalContent = renderInvestmentModalContent;

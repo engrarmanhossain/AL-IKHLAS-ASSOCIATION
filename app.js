@@ -3852,14 +3852,11 @@ function renderTreasuryCards() {
   const investSubtextEl = document.getElementById('treasury-invest-subtext');
 
   const totalInterest = state.treasury.totalCredited || 887.43;
-  const totalProfit = state.treasury.totalProfitAmount || state.treasury.totalProfit || 0;
-  const totalIr = state.treasury.totalIrDeposit || 0;
-  const totalCreditedAll = totalInterest + totalProfit + totalIr;
 
   if (bankEl) bankEl.textContent = formatDecimalCurrency(state.treasury.bankBalance);
   if (investEl) investEl.textContent = formatCurrency(state.treasury.totalWithdrawn);
   if (debitedEl) debitedEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
-  if (creditedEl) creditedEl.textContent = '+' + formatDecimalCurrency(totalCreditedAll);
+  if (creditedEl) creditedEl.textContent = '+' + formatDecimalCurrency(totalInterest);
 
   if (investSubtextEl && state.treasury.investment) {
     const inv = state.treasury.investment;
@@ -3902,20 +3899,17 @@ function renderBankLedgerTable() {
 
   const totalDep = state.treasury.totalDeposited || 322500.00;
   const totalInterest = state.treasury.totalCredited || 887.43;
-  const totalProfit = state.treasury.totalProfitAmount || state.treasury.totalProfit || 0;
-  const totalIr = state.treasury.totalIrDeposit || 0;
-  const totalInflowCredits = totalInterest + totalProfit + totalIr;
   const totalDebits = (state.treasury.totalWithdrawn || 300000.00) + (state.treasury.totalDebited || 825.02);
 
   if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22565.41);
   if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
   if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
-  if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalInterest + totalProfit);
+  if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalInterest);
   if (memberCreditsEl) memberCreditsEl.textContent = formatDecimalCurrency(totalDep);
-  if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalDep + totalInflowCredits);
+  if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalDep + totalInterest);
 
   const interestBannerEl = document.getElementById('bank-ledger-interest-credits');
-  if (interestBannerEl) interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInflowCredits);
+  if (interestBannerEl) interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
 
   const debitsBannerEl = document.getElementById('bank-ledger-total-debits-banner');
   if (debitsBannerEl) debitsBannerEl.textContent = formatDecimalCurrency(totalDebits);

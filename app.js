@@ -46,7 +46,7 @@ const DEFAULT_BANK_DETAILS = {
   accountType: 'Current / Association Account',
   swiftCode: 'MTBLBDDH',
   instructions: 'Deposits can be made via MTB Branch Slips, BEFTN, NPSB, RTGS, or Internet Banking. Please mention your Full Name & Month in deposit remarks.',
-  liquidBalance: 23062.41,
+  liquidBalance: 22562.41,
   updatedAt: '16 Oct 2026',
   updatedBy: 'Admin / President'
 };
@@ -390,7 +390,7 @@ let state = {
     totalProfitAmount: 0,
     totalIrDeposit: 0,
     totalDirectDeposits: 500.00,
-    bankBalance: 23062.41,
+    bankBalance: 22562.41,
     bankName: 'Mutual Trust Bank PLC',
     bankAccount: '999101****351',
     investment: {
@@ -731,7 +731,7 @@ function renderBankDetailsModalContent() {
   viewContainer.classList.remove('hidden');
 
   const b = state.bankDetails || DEFAULT_BANK_DETAILS;
-  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 23062.41;
+  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 22562.41;
   const canEdit = canEditBankDetails();
 
   viewContainer.innerHTML = `
@@ -3881,11 +3881,8 @@ function recalculateLiquidBalance() {
   const totalInterest = state.treasury.totalCredited || 887.43;
 
   // Base Operational Balance = Member Deposits - Investments - Fees + Bank Interest
-  const baseBalance = totalDep - totalInv - totalDeb + totalInterest;
-
-  // Final Liquid Bank Balance = Base + listed Deposit + listed IR Deposit + listed Profit
-  // RULE: Every listed entry is counted strictly ONCE (e.g. 500 is 500, not dual-counted).
-  const finalLiquidBalance = baseBalance + listedDeposit + listedIrDeposit + listedProfit;
+  // Per instruction: Do not use any data of Profit, Deposit, IR Deposit for any calculation.
+  const finalLiquidBalance = totalDep - totalInv - totalDeb + totalInterest;
 
   state.treasury.bankBalance = finalLiquidBalance;
   state.treasury.availableLiquidity = finalLiquidBalance;
@@ -4336,10 +4333,9 @@ function renderBankLedgerTable() {
   const totalDep = state.treasury.totalDeposited || 322500.00;
   const totalInterest = state.treasury.totalCredited || 887.43;
   const totalDebits = (state.treasury.totalWithdrawn || 300000.00) + (state.treasury.totalDebited || 825.02);
-  const extraCredits = (state.treasury.totalDirectDeposits || 0) + (state.treasury.totalIrDeposit || 0) + (state.treasury.totalProfit || 0);
-  const totalInflows = totalDep + totalInterest + extraCredits;
+  const totalInflows = totalDep + totalInterest;
 
-  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23062.41);
+  if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22562.41);
   if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
   if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
   if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalInterest);
@@ -4347,19 +4343,13 @@ function renderBankLedgerTable() {
   if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalInflows);
 
   const interestBannerEl = document.getElementById('bank-ledger-interest-credits');
-  if (interestBannerEl) {
-    if (extraCredits > 0) {
-      interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest + extraCredits);
-    } else {
-      interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
-    }
-  }
+  if (interestBannerEl) interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
 
   const debitsBannerEl = document.getElementById('bank-ledger-total-debits-banner');
   if (debitsBannerEl) debitsBannerEl.textContent = formatDecimalCurrency(totalDebits);
 
   const netLiquidBannerEl = document.getElementById('bank-ledger-net-liquid-banner');
-  if (netLiquidBannerEl) netLiquidBannerEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23062.41);
+  if (netLiquidBannerEl) netLiquidBannerEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 22562.41);
 
   if (currentBankLedgerView === 'deposits') {
     // Show all credited member deposits

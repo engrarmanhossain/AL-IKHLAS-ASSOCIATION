@@ -3539,7 +3539,7 @@ function processSummarySheetData(rows) {
         const valRight = (row[c + 1] !== undefined && row[c + 1] !== '') ? parseFloat(row[c + 1]) : NaN;
         const candidate = !isNaN(valBelow) && valBelow > 0 ? valBelow : (!isNaN(valRight) && valRight > 0 ? valRight : null);
         if (candidate !== null) {
-          state.treasury.restOfAmount = candidate;
+          state.treasury.summaryRestOfAmount = candidate;
         }
       }
 
@@ -3564,7 +3564,10 @@ function processSummarySheetData(rows) {
       if (cellStr.includes('total debited amount')) {
         const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
         if (!isNaN(valBelow) && valBelow > 0) {
-          state.treasury.totalDebited = valBelow;
+          state.treasury.summaryDebited = valBelow;
+          if (!state.treasury.bankDebits || state.treasury.bankDebits.length === 0) {
+            state.treasury.totalDebited = valBelow;
+          }
         }
       }
 
@@ -3572,7 +3575,10 @@ function processSummarySheetData(rows) {
       if (cellStr.includes('total credited amount')) {
         const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
         if (!isNaN(valBelow) && valBelow > 0) {
-          state.treasury.totalCredited = valBelow;
+          state.treasury.summaryCredited = valBelow;
+          if (!state.treasury.bankDebits || state.treasury.bankDebits.length === 0) {
+            state.treasury.totalCredited = valBelow;
+          }
         }
       }
 
@@ -3794,6 +3800,7 @@ function renderInvestmentModalContent() {
   }
 }
 
+
 // Dynamic Real-Time Liquid Bank Balance Calculation Engine
 function recalculateLiquidBalance() {
   let receivedCapital = 0;
@@ -3809,24 +3816,22 @@ function recalculateLiquidBalance() {
     state.treasury.totalDeposited = receivedCapital;
   }
 
-  const totalDep = state.treasury.totalDeposited || receivedCapital || 322500;
-  const totalInv = state.treasury.totalWithdrawn || 300000;
-  const totalDeb = state.treasury.totalDebited || 825.02;
-  const totalInterest = state.treasury.totalCredited || 887.43;
-
-  // Base bank balance before special listed transactions:
-  // Base = Total Member Deposits - Active Investment - Bank Maintenance Fees + Bank Credited Interest
-  const baseRest = (state.treasury.restOfAmount !== undefined && state.treasury.restOfAmount > 0)
-    ? state.treasury.restOfAmount
-    : (totalDep - totalInv - totalDeb + totalInterest);
-
   // Scan listed ledger entries (bankDebits / DEFAULT_BANK_LEDGER)
-  // RULE: ONLY when listed amount type is Deposit, IR Deposit, or Profit, add that amount.
-  // Otherwise NOT.
+  // Mutually exclusive single-count ledger accounting:
+  // Every listed transaction belongs to strictly ONE bucket:
+  // - Debit: Bank maintenance & operational fees
+  // - Credit: Bank credited interest
+  // - Withdraw: Investment withdrawals
+  // - Deposit: Direct / First deposit (+BDT directly to Liquid Balance)
+  // - IR Deposit: Investment Return Deposit (+BDT directly to Liquid Balance)
+  // - Profit: Business Profit (+BDT directly to Liquid Balance)
   const entries = (state.treasury.bankDebits && state.treasury.bankDebits.length > 0)
     ? state.treasury.bankDebits
     : DEFAULT_BANK_LEDGER;
 
+  let listedDebits = 0;
+  let listedCredits = 0;
+  let listedWithdrawals = 0;
   let listedDeposit = 0;
   let listedIrDeposit = 0;
   let listedProfit = 0;
@@ -3834,11 +3839,14 @@ function recalculateLiquidBalance() {
   entries.forEach(item => {
     const typeLower = (item.type || '').toString().toLowerCase().trim();
     const causeLower = (item.cause || '').toString().toLowerCase().trim();
+    const msgLower = (item.message || '').toString().toLowerCase().trim();
     const amt = parseFloat(item.amount) || 0;
 
     const isProfit = typeLower === 'profit' || causeLower.includes('profit');
     const isIrDeposit = typeLower.includes('ir deposit') || typeLower.includes('ir deposite') || causeLower.includes('ir deposit') || causeLower.includes('ir deposite');
     const isDeposit = !isIrDeposit && (typeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit'));
+    const isInterestCredit = !isProfit && !isIrDeposit && !isDeposit && (typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited'));
+    const isWithdraw = typeLower === 'withdraw' || (!isProfit && !isIrDeposit && !isDeposit && !isInterestCredit && (amt >= 50000 || causeLower.includes('withdraw')));
 
     if (isProfit) {
       listedProfit += amt;
@@ -3846,8 +3854,20 @@ function recalculateLiquidBalance() {
       listedIrDeposit += amt;
     } else if (isDeposit) {
       listedDeposit += amt;
+    } else if (isInterestCredit) {
+      listedCredits += amt;
+    } else if (isWithdraw) {
+      listedWithdrawals += amt;
+    } else {
+      listedDebits += amt;
     }
   });
+
+  if (listedDebits > 0) state.treasury.totalDebited = listedDebits;
+  if (listedCredits > 0) state.treasury.totalCredited = listedCredits;
+  if (listedWithdrawals > 0 && (!state.treasury.totalWithdrawn || state.treasury.totalWithdrawn < 100000)) {
+    state.treasury.totalWithdrawn = listedWithdrawals;
+  }
 
   // Sync state treasury properties with exact listed amounts (0 if not listed)
   state.treasury.totalDirectDeposits = listedDeposit;
@@ -3855,8 +3875,17 @@ function recalculateLiquidBalance() {
   state.treasury.totalProfit = listedProfit;
   state.treasury.totalProfitAmount = listedProfit;
 
+  const totalDep = state.treasury.totalDeposited || receivedCapital || 322500;
+  const totalInv = state.treasury.totalWithdrawn || 300000;
+  const totalDeb = state.treasury.totalDebited || 825.02;
+  const totalInterest = state.treasury.totalCredited || 887.43;
+
+  // Base Operational Balance = Member Deposits - Investments - Fees + Bank Interest
+  const baseBalance = totalDep - totalInv - totalDeb + totalInterest;
+
   // Final Liquid Bank Balance = Base + listed Deposit + listed IR Deposit + listed Profit
-  const finalLiquidBalance = baseRest + listedDeposit + listedIrDeposit + listedProfit;
+  // RULE: Every listed entry is counted strictly ONCE (e.g. 500 is 500, not dual-counted).
+  const finalLiquidBalance = baseBalance + listedDeposit + listedIrDeposit + listedProfit;
 
   state.treasury.bankBalance = finalLiquidBalance;
   state.treasury.availableLiquidity = finalLiquidBalance;
@@ -4011,7 +4040,7 @@ function processRawData(rows, triggerToast = false) {
       if (row[6] && !isNaN(parseFloat(row[6]))) {
         const val = parseFloat(row[6]);
         if (val > 100000) state.treasury.totalDeposited = val;
-        else if (val > 20000 && val < 50000) state.treasury.restOfAmount = val;
+        else if (val > 20000 && val < 50000) state.treasury.summaryRestOfAmount = val;
       }
       if (row[8] && !isNaN(parseFloat(row[8]))) {
         const val = parseFloat(row[8]);
@@ -4307,16 +4336,24 @@ function renderBankLedgerTable() {
   const totalDep = state.treasury.totalDeposited || 322500.00;
   const totalInterest = state.treasury.totalCredited || 887.43;
   const totalDebits = (state.treasury.totalWithdrawn || 300000.00) + (state.treasury.totalDebited || 825.02);
+  const extraCredits = (state.treasury.totalDirectDeposits || 0) + (state.treasury.totalIrDeposit || 0) + (state.treasury.totalProfit || 0);
+  const totalInflows = totalDep + totalInterest + extraCredits;
 
   if (balEl) balEl.textContent = formatDecimalCurrency(state.treasury.bankBalance || 23062.41);
   if (invEl) invEl.textContent = formatDecimalCurrency(state.treasury.totalWithdrawn || 300000.00);
   if (feeEl) feeEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
   if (intEl) intEl.textContent = '+' + formatDecimalCurrency(totalInterest);
   if (memberCreditsEl) memberCreditsEl.textContent = formatDecimalCurrency(totalDep);
-  if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalDep + totalInterest);
+  if (totalCreditsEl) totalCreditsEl.textContent = formatDecimalCurrency(totalInflows);
 
   const interestBannerEl = document.getElementById('bank-ledger-interest-credits');
-  if (interestBannerEl) interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
+  if (interestBannerEl) {
+    if (extraCredits > 0) {
+      interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest + extraCredits);
+    } else {
+      interestBannerEl.textContent = '+' + formatDecimalCurrency(totalInterest);
+    }
+  }
 
   const debitsBannerEl = document.getElementById('bank-ledger-total-debits-banner');
   if (debitsBannerEl) debitsBannerEl.textContent = formatDecimalCurrency(totalDebits);
@@ -4387,7 +4424,7 @@ function renderBankLedgerTable() {
       const isProfit = typeLower === 'profit' || causeLower.includes('profit');
       const isIrDeposit = typeLower.includes('ir deposit') || typeLower.includes('ir deposite') || causeLower.includes('ir deposit') || causeLower.includes('ir deposite');
       const isDeposit = !isIrDeposit && (typeLower === 'deposit' || causeLower.includes('deposit') || causeLower.includes('frist deposit') || causeLower.includes('first deposit'));
-      const isInterestCredit = typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited');
+      const isInterestCredit = !isProfit && !isIrDeposit && !isDeposit && (typeLower === 'credit' || causeLower.includes('interest') || msgLower.includes('credited'));
       const isCredit = isProfit || isIrDeposit || isDeposit || isInterestCredit;
       const isWithdraw = typeLower === 'withdraw' || (!isCredit && (item.amount >= 50000 || causeLower.includes('withdraw')));
 

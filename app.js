@@ -14,6 +14,7 @@ const CONFIG = {
   STORAGE_KEY_USERS: 'al_ikhlas_users_list_v2',
   STORAGE_KEY_OVERRIDES: 'al_ikhlas_status_overrides_v2',
   STORAGE_KEY_NEW_TXS: 'al_ikhlas_custom_txs_v2',
+  STORAGE_KEY_LOGO: 'al_ikhlas_association_logo_v1',
 };
 
 // Initial Default Users & Roles
@@ -27,6 +28,10 @@ const DEFAULT_USERS = [
     phone: '01724472229',
     role: 'President', // Super Admin
     avatar: null,
+    nid: '19921234567890123',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19951234567890124',
+    nomineeRelation: 'Spouse',
   },
   {
     id: 'u2',
@@ -37,6 +42,10 @@ const DEFAULT_USERS = [
     phone: '01628435701',
     role: 'Accountant', // Financial Admin
     avatar: null,
+    nid: '19932678901234567',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19962678901234568',
+    nomineeRelation: 'Mother',
   },
   {
     id: 'u3',
@@ -47,6 +56,10 @@ const DEFAULT_USERS = [
     phone: '01846329066',
     role: 'Secretary',
     avatar: null,
+    nid: '19913456789012345',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19943456789012346',
+    nomineeRelation: 'Spouse',
   },
   {
     id: 'u4',
@@ -57,6 +70,10 @@ const DEFAULT_USERS = [
     phone: '01600102219',
     role: 'Cashier',
     avatar: null,
+    nid: '19904567890123456',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19934567890123457',
+    nomineeRelation: 'Brother',
   },
   {
     id: 'u5',
@@ -67,6 +84,10 @@ const DEFAULT_USERS = [
     phone: '01882812309',
     role: 'Member',
     avatar: null,
+    nid: '19945678901234567',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19975678901234568',
+    nomineeRelation: 'Father',
   },
   {
     id: 'u6',
@@ -77,6 +98,10 @@ const DEFAULT_USERS = [
     phone: '01616780307',
     role: 'Member',
     avatar: null,
+    nid: '19926789012345678',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19956789012345679',
+    nomineeRelation: 'Mother',
   },
   {
     id: 'u7',
@@ -87,6 +112,10 @@ const DEFAULT_USERS = [
     phone: '01864996234',
     role: 'Member',
     avatar: null,
+    nid: '19937890123456789',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19967890123456780',
+    nomineeRelation: 'Spouse',
   },
   {
     id: 'u8',
@@ -97,6 +126,10 @@ const DEFAULT_USERS = [
     phone: '01571771318',
     role: 'Member',
     avatar: null,
+    nid: '19958901234567890',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19988901234567891',
+    nomineeRelation: 'Father',
   },
   {
     id: 'u9',
@@ -107,6 +140,10 @@ const DEFAULT_USERS = [
     phone: '01712327821',
     role: 'Member',
     avatar: null,
+    nid: '19919012345678901',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19949012345678902',
+    nomineeRelation: 'Spouse',
   },
   {
     id: 'u10',
@@ -117,6 +154,10 @@ const DEFAULT_USERS = [
     phone: '01845834641',
     role: 'Member',
     avatar: null,
+    nid: '19940123456789012',
+    nomineeName: 'Designated Nominee',
+    nomineeNid: '19970123456789013',
+    nomineeRelation: 'Brother',
   }
 ];
 
@@ -138,6 +179,7 @@ let state = {
   autoRefreshIntervalMs: 30000,
   isFetching: false,
   lastUpdated: null,
+  associationLogo: null,
   treasury: {
     totalDeposited: 324000,
     totalWithdrawn: 300000,
@@ -328,23 +370,116 @@ function compressImage(file, maxSize = 256, quality = 0.85) {
   });
 }
 
+// ============================================================================
+// ASSOCIATION LOGO & OFFICIAL BRANDING ENGINE
+// ============================================================================
+
+function applyAssociationLogo() {
+  const navLogo = document.getElementById('navbar-logo-container');
+  const loginTopLogo = document.getElementById('login-top-logo');
+  const loginCenterLogo = document.getElementById('login-center-logo');
+  const statementLogo = document.getElementById('statement-logo-container');
+  const adminPreview = document.getElementById('admin-logo-preview');
+  const btnReset = document.getElementById('btn-remove-logo');
+
+  if (state.associationLogo) {
+    const imgHtml = `<img src="${state.associationLogo}" class="w-full h-full object-cover rounded-2xl" alt="Al-Ikhlas Association Logo">`;
+    if (navLogo) navLogo.innerHTML = imgHtml;
+    if (loginTopLogo) loginTopLogo.innerHTML = imgHtml;
+    if (loginCenterLogo) loginCenterLogo.innerHTML = `<img src="${state.associationLogo}" class="w-full h-full object-cover rounded-3xl" alt="Al-Ikhlas Association Logo">`;
+    if (statementLogo) statementLogo.innerHTML = imgHtml;
+    if (adminPreview) adminPreview.innerHTML = imgHtml;
+    if (btnReset) btnReset.classList.remove('hidden');
+  } else {
+    if (navLogo) navLogo.innerHTML = '<i class="fa-solid fa-kaaba text-lg text-gold-400"></i>';
+    if (loginTopLogo) loginTopLogo.innerHTML = '<i class="fa-solid fa-kaaba text-2xl text-gold-400"></i>';
+    if (loginCenterLogo) loginCenterLogo.innerHTML = '<i class="fa-solid fa-kaaba text-3xl text-gold-400"></i>';
+    if (statementLogo) statementLogo.innerHTML = '<i class="fa-solid fa-kaaba text-xl text-gold-400"></i>';
+    if (adminPreview) adminPreview.innerHTML = '<i class="fa-solid fa-kaaba text-3xl text-gold-400"></i>';
+    if (btnReset) btnReset.classList.add('hidden');
+  }
+}
+
+function initLogo() {
+  const storedLogo = localStorage.getItem(CONFIG.STORAGE_KEY_LOGO);
+  if (storedLogo) {
+    state.associationLogo = storedLogo;
+  }
+  applyAssociationLogo();
+}
+
+async function handleLogoUpload(e) {
+  if (!isAdmin()) {
+    showToast('Only the President can update the Association Logo.', 'error');
+    return;
+  }
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select a valid image file (PNG, JPG, WebP)', 'error');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Logo file size exceeds 5MB limit', 'error');
+    return;
+  }
+
+  try {
+    showToast('Optimizing and applying Association Logo...', 'info');
+    const compressed = await compressImage(file, 256, 0.90);
+    state.associationLogo = compressed;
+    localStorage.setItem(CONFIG.STORAGE_KEY_LOGO, compressed);
+    applyAssociationLogo();
+    showToast('Association Logo updated globally!', 'success');
+  } catch (err) {
+    console.error('Logo upload error:', err);
+    showToast('Failed to process logo image.', 'error');
+  }
+}
+
+function handleRemoveLogo() {
+  if (!isAdmin()) {
+    showToast('Only the President can reset the Association Logo.', 'error');
+    return;
+  }
+  if (confirm('Reset official Association Logo back to default Kaaba emblem?')) {
+    state.associationLogo = null;
+    localStorage.removeItem(CONFIG.STORAGE_KEY_LOGO);
+    const input = document.getElementById('admin-logo-input');
+    if (input) input.value = '';
+    applyAssociationLogo();
+    showToast('Logo reset to default emblem.', 'info');
+  }
+}
+
 // User & Auth Engine
 function initUsersAndAuth() {
+  // Load official Association Logo
+  initLogo();
+
   // Load users from storage or use defaults
   const storedUsers = localStorage.getItem(CONFIG.STORAGE_KEY_USERS);
   if (storedUsers) {
     try {
       state.users = JSON.parse(storedUsers);
-      // Ensure all users have sheetName and avatar mapped
+      // Ensure all users have sheetName, avatar, nid, and nominee properties mapped
       state.users.forEach(u => {
+        const def = DEFAULT_USERS.find(d => d.id === u.id || d.email.toLowerCase() === u.email.toLowerCase());
         if (!u.sheetName) {
-          const def = DEFAULT_USERS.find(d => d.id === u.id || d.email.toLowerCase() === u.email.toLowerCase());
           u.sheetName = def ? def.sheetName : u.name;
         }
-        if (typeof u.avatar === 'undefined') u.avatar = null;
+        if (typeof u.avatar === 'undefined') u.avatar = def ? def.avatar : null;
+        if (typeof u.nid === 'undefined' || !u.nid) u.nid = def ? def.nid : '';
+        if (typeof u.nomineeName === 'undefined' || !u.nomineeName) u.nomineeName = def ? def.nomineeName : '';
+        if (typeof u.nomineeNid === 'undefined' || !u.nomineeNid) u.nomineeNid = def ? def.nomineeNid : '';
+        if (typeof u.nomineeRelation === 'undefined' || !u.nomineeRelation) u.nomineeRelation = def ? def.nomineeRelation : '';
       });
+      localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     } catch (e) {
       state.users = [...DEFAULT_USERS];
+      localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     }
   } else {
     state.users = [...DEFAULT_USERS];
@@ -360,6 +495,10 @@ function initUsersAndAuth() {
       if (matched) {
         state.currentUser.sheetName = matched.sheetName || state.currentUser.name;
         state.currentUser.avatar = matched.avatar || null;
+        state.currentUser.nid = matched.nid || '';
+        state.currentUser.nomineeName = matched.nomineeName || '';
+        state.currentUser.nomineeNid = matched.nomineeNid || '';
+        state.currentUser.nomineeRelation = matched.nomineeRelation || '';
       }
       showView('dashboard');
       if (!isAdmin()) {
@@ -730,6 +869,62 @@ function renderMemberPersonalView() {
       </div>
     </div>
 
+    <!-- 1B. NATIONAL IDENTITY (NID) & NOMINEE DETAILS CARD -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-id-card"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900 dark:text-white">National Identity (NID) &amp; Nominee Details</h4>
+            <p class="text-[11px] text-slate-400">Official identification and designated association beneficiary records</p>
+          </div>
+        </div>
+        <button onclick="openMemberProfileModal()" class="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>Update</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Own NID Card -->
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-start gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 text-base">
+            <i class="fa-solid fa-address-card"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">My National ID (Own NID)</span>
+            <div class="text-base font-extrabold font-mono text-slate-900 dark:text-white mt-0.5">
+              ${state.currentUser.nid || '<span class="text-slate-400 font-sans text-xs font-normal italic">Not set — click "Edit Profile" to add</span>'}
+            </div>
+            <span class="text-[11px] text-emerald-600 font-semibold block mt-1">
+              <i class="fa-solid fa-circle-check text-[10px] mr-1"></i>Verified Association Member
+            </span>
+          </div>
+        </div>
+
+        <!-- Nominee Information Card -->
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-start gap-3.5">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 text-base">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Designated Nominee</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-sm font-extrabold text-slate-900 dark:text-white">
+                ${state.currentUser.nomineeName || '<span class="text-slate-400 text-xs font-normal italic">No nominee added</span>'}
+              </span>
+              ${state.currentUser.nomineeRelation ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">${state.currentUser.nomineeRelation}</span>` : ''}
+            </div>
+            <div class="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">
+              ${state.currentUser.nomineeNid ? `Nominee NID: <span class="font-bold text-slate-700 dark:text-slate-300">${state.currentUser.nomineeNid}</span>` : '<span class="text-slate-400 italic text-[11px]">Nominee NID not recorded</span>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 2. FOUR FINANCIAL SUMMARY CARDS FOR THIS MEMBER -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       
@@ -857,12 +1052,20 @@ function openMemberProfileModal() {
   const phoneInput = document.getElementById('member-profile-phone');
   const emailInput = document.getElementById('member-profile-email');
   const fileInput = document.getElementById('member-profile-photo-input');
+  const nidInput = document.getElementById('member-profile-nid');
+  const nomineeNameInput = document.getElementById('member-profile-nominee-name');
+  const nomineeRelationInput = document.getElementById('member-profile-nominee-relation');
+  const nomineeNidInput = document.getElementById('member-profile-nominee-nid');
   const modal = document.getElementById('modal-member-profile');
 
   if (fileInput) fileInput.value = '';
   if (nameInput) nameInput.value = state.currentUser.name || '';
   if (phoneInput) phoneInput.value = state.currentUser.phone || '';
   if (emailInput) emailInput.value = state.currentUser.email || '';
+  if (nidInput) nidInput.value = state.currentUser.nid || '';
+  if (nomineeNameInput) nomineeNameInput.value = state.currentUser.nomineeName || '';
+  if (nomineeRelationInput) nomineeRelationInput.value = state.currentUser.nomineeRelation || '';
+  if (nomineeNidInput) nomineeNidInput.value = state.currentUser.nomineeNid || '';
 
   tempProfileAvatar = state.currentUser.avatar || null;
   updateModalAvatarPreview();
@@ -937,6 +1140,10 @@ function handleMemberProfileSubmit(e) {
 
   const newName = document.getElementById('member-profile-name').value.trim();
   const newPhone = document.getElementById('member-profile-phone').value.trim();
+  const newNid = document.getElementById('member-profile-nid')?.value.trim() || '';
+  const newNomineeName = document.getElementById('member-profile-nominee-name')?.value.trim() || '';
+  const newNomineeRelation = document.getElementById('member-profile-nominee-relation')?.value || '';
+  const newNomineeNid = document.getElementById('member-profile-nominee-nid')?.value.trim() || '';
 
   if (!newName) {
     showToast('Name cannot be empty', 'error');
@@ -946,6 +1153,10 @@ function handleMemberProfileSubmit(e) {
   // Update in state.currentUser (Password remains unchanged!)
   state.currentUser.name = newName;
   state.currentUser.phone = newPhone;
+  state.currentUser.nid = newNid;
+  state.currentUser.nomineeName = newNomineeName;
+  state.currentUser.nomineeRelation = newNomineeRelation;
+  state.currentUser.nomineeNid = newNomineeNid;
   if (tempProfileAvatar !== null) {
     state.currentUser.avatar = tempProfileAvatar ? tempProfileAvatar : null;
   }
@@ -955,6 +1166,10 @@ function handleMemberProfileSubmit(e) {
   if (userIdx !== -1) {
     state.users[userIdx].name = newName;
     state.users[userIdx].phone = newPhone;
+    state.users[userIdx].nid = newNid;
+    state.users[userIdx].nomineeName = newNomineeName;
+    state.users[userIdx].nomineeRelation = newNomineeRelation;
+    state.users[userIdx].nomineeNid = newNomineeNid;
     if (tempProfileAvatar !== null) {
       state.users[userIdx].avatar = tempProfileAvatar ? tempProfileAvatar : null;
     }
@@ -974,7 +1189,7 @@ function handleMemberProfileSubmit(e) {
   }
   closeMemberProfileModal();
 
-  showToast('Profile and picture updated successfully!', 'success');
+  showToast('Profile, NID, and nominee details updated successfully!', 'success');
 }
 
 function printMemberStatement() {
@@ -1026,27 +1241,38 @@ function renderAdminUsersTable() {
                       isAccountant ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                       'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
 
-    const permissionsText = isPresident ? 'Full Executive Admin' :
-                            isAccountant ? 'Financial & Approval Access' :
-                            u.role === 'Cashier' ? 'Cashier & Deposit Entry' : 'Statement & Directory Viewer';
-
     tr.innerHTML = `
-      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-        ${renderUserAvatar(u, 'w-7 h-7 rounded-lg', 'text-[11px]')}
-        <span>${u.name}</span>
+      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">
+        <div class="flex items-center gap-2.5">
+          ${renderUserAvatar(u, 'w-8 h-8 rounded-xl', 'text-xs')}
+          <div>
+            <div class="font-bold text-slate-900 dark:text-white leading-tight">${u.name}</div>
+            <span class="text-[10px] text-slate-400 font-mono">${u.id}</span>
+          </div>
+        </div>
       </td>
-      <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-xs">${u.email}</td>
-      <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-xs">${u.phone || '-'}</td>
+      <td class="py-3 px-4">
+        <div class="font-mono text-xs text-slate-700 dark:text-slate-300">${u.email}</div>
+        <div class="font-mono text-[11px] text-slate-400">${u.phone || '-'}</div>
+      </td>
       <td class="py-3 px-4">
         <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${roleBadge}">
           ${u.role}
         </span>
       </td>
-      <td class="py-3 px-4 text-center text-xs text-slate-500">${permissionsText}</td>
+      <td class="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+        ${u.nid ? `<span class="font-bold text-slate-800 dark:text-slate-100">${u.nid}</span>` : '<span class="text-slate-400 italic font-sans text-xs">Not set</span>'}
+      </td>
+      <td class="py-3 px-4">
+        <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">
+          ${u.nomineeName ? `<span>${u.nomineeName}</span> ${u.nomineeRelation ? `<span class="text-[10px] font-normal px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">(${u.nomineeRelation})</span>` : ''}` : '<span class="text-slate-400 italic font-sans font-normal text-xs">None recorded</span>'}
+        </div>
+        ${u.nomineeNid ? `<div class="font-mono text-[10px] text-slate-400">NID: ${u.nomineeNid}</div>` : ''}
+      </td>
       <td class="py-3 px-4 text-center">
         <div class="flex items-center justify-center gap-1.5">
-          <button onclick="editUserRole('${u.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 transition">
-            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Role
+          <button onclick="openAddUserModal('${u.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800 transition flex items-center gap-1" title="Edit Member, Photo & Role">
+            <i class="fa-solid fa-user-pen text-[11px]"></i> Edit
           </button>
           ${!isPresident ? `
             <button onclick="deleteUser('${u.id}')" class="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 transition" title="Delete User">
@@ -1060,6 +1286,59 @@ function renderAdminUsersTable() {
   });
 }
 
+// Admin Photo Management for Any Member
+let tempAdminUserAvatar = null;
+
+function updateAdminUserAvatarPreview() {
+  const preview = document.getElementById('admin-user-avatar-preview');
+  const btnRemove = document.getElementById('btn-admin-remove-photo');
+  if (!preview) return;
+
+  if (tempAdminUserAvatar) {
+    preview.innerHTML = `<img src="${tempAdminUserAvatar}" class="w-full h-full object-cover rounded-2xl" alt="Preview">`;
+    if (btnRemove) btnRemove.classList.remove('hidden');
+  } else {
+    const curName = (document.getElementById('form-user-name')?.value || 'AI');
+    preview.style.backgroundColor = stringToColor(curName);
+    preview.innerHTML = `<span>${getInitials(curName)}</span>`;
+    if (btnRemove) btnRemove.classList.add('hidden');
+  }
+}
+
+async function handleAdminUserPhotoSelected(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select a valid image file (JPG, PNG, WebP)', 'error');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Image size exceeds 5MB limit', 'error');
+    return;
+  }
+
+  try {
+    showToast('Processing photo...', 'info');
+    const compressed = await compressImage(file, 256, 0.85);
+    tempAdminUserAvatar = compressed;
+    updateAdminUserAvatarPreview();
+    showToast('Photo uploaded! Save changes to apply.', 'success');
+  } catch (err) {
+    console.error('Photo processing failed:', err);
+    showToast('Failed to process image', 'error');
+  }
+}
+
+function handleAdminRemoveUserPhoto() {
+  tempAdminUserAvatar = '';
+  const fileInput = document.getElementById('admin-user-photo-input');
+  if (fileInput) fileInput.value = '';
+  updateAdminUserAvatarPreview();
+  showToast('Member photo removed. Default initials will be used.', 'info');
+}
+
 function openAddUserModal(userId = null) {
   if (!canManageUsers()) {
     showToast('Only the President can add or edit users.', 'error');
@@ -1071,21 +1350,36 @@ function openAddUserModal(userId = null) {
   const form = document.getElementById('user-form');
   form.reset();
 
+  const photoInput = document.getElementById('admin-user-photo-input');
+  if (photoInput) photoInput.value = '';
+
   if (userId) {
     const user = state.users.find(u => u.id === userId);
     if (user) {
-      title.textContent = `Edit Role: ${user.name}`;
+      title.textContent = `Edit Member & Role: ${user.name}`;
       document.getElementById('form-user-id').value = user.id;
       document.getElementById('form-user-name').value = user.name;
       document.getElementById('form-user-email').value = user.email;
       document.getElementById('form-user-phone').value = user.phone || '';
       document.getElementById('form-user-role').value = user.role;
       document.getElementById('form-user-password').value = user.password || '';
+      document.getElementById('form-user-nid').value = user.nid || '';
+      document.getElementById('form-user-nominee-name').value = user.nomineeName || '';
+      document.getElementById('form-user-nominee-relation').value = user.nomineeRelation || '';
+      document.getElementById('form-user-nominee-nid').value = user.nomineeNid || '';
+      tempAdminUserAvatar = user.avatar || null;
     }
   } else {
     title.textContent = 'Add New User / Member';
     document.getElementById('form-user-id').value = '';
+    document.getElementById('form-user-nid').value = '';
+    document.getElementById('form-user-nominee-name').value = '';
+    document.getElementById('form-user-nominee-relation').value = '';
+    document.getElementById('form-user-nominee-nid').value = '';
+    tempAdminUserAvatar = null;
   }
+
+  updateAdminUserAvatarPreview();
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -1125,6 +1419,10 @@ function handleUserSubmit(e) {
   const phone = document.getElementById('form-user-phone').value.trim();
   const role = document.getElementById('form-user-role').value;
   const pass = document.getElementById('form-user-password').value.trim() || 'member2026';
+  const nid = document.getElementById('form-user-nid').value.trim();
+  const nomineeName = document.getElementById('form-user-nominee-name').value.trim();
+  const nomineeRelation = document.getElementById('form-user-nominee-relation').value;
+  const nomineeNid = document.getElementById('form-user-nominee-nid').value.trim();
 
   if (id) {
     // Update existing
@@ -1134,7 +1432,27 @@ function handleUserSubmit(e) {
       u.email = email;
       u.phone = phone;
       u.role = role;
+      u.nid = nid;
+      u.nomineeName = nomineeName;
+      u.nomineeRelation = nomineeRelation;
+      u.nomineeNid = nomineeNid;
+      if (tempAdminUserAvatar !== null) {
+        u.avatar = tempAdminUserAvatar ? tempAdminUserAvatar : null;
+      }
       if (pass) u.password = pass;
+
+      // Sync state.currentUser if currently logged in user was edited
+      if (state.currentUser && (state.currentUser.id === u.id || state.currentUser.email.toLowerCase() === u.email.toLowerCase())) {
+        state.currentUser.name = u.name;
+        state.currentUser.phone = u.phone;
+        state.currentUser.role = u.role;
+        state.currentUser.avatar = u.avatar;
+        state.currentUser.nid = u.nid;
+        state.currentUser.nomineeName = u.nomineeName;
+        state.currentUser.nomineeRelation = u.nomineeRelation;
+        state.currentUser.nomineeNid = u.nomineeNid;
+        localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
+      }
     }
   } else {
     // Add new user
@@ -1145,14 +1463,20 @@ function handleUserSubmit(e) {
       phone,
       role,
       password: pass,
-      avatar: null
+      avatar: tempAdminUserAvatar || null,
+      nid,
+      nomineeName,
+      nomineeRelation,
+      nomineeNid
     });
   }
 
   localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   renderAdminUsersTable();
+  renderMembersGrid();
+  renderAuthHeader();
   closeUserModal();
-  showToast(`User ${name} updated with role: ${role}!`, 'success');
+  showToast(`Saved member profile, photo & role for "${name}"!`, 'success');
 }
 
 // Payment Status Overrides & Approval Actions
@@ -2497,8 +2821,14 @@ function renderMembersGrid() {
     if (cleanPhone.startsWith('0')) cleanPhone = '88' + cleanPhone;
 
     // Check user role from state.users
-    const assignedUser = state.users.find(u => u.name.toLowerCase() === m.name.toLowerCase());
+    const assignedUser = state.users.find(u => 
+      (u.sheetName && u.sheetName.toLowerCase() === m.name.toLowerCase()) ||
+      u.name.toLowerCase() === m.name.toLowerCase()
+    );
     const roleBadge = assignedUser ? assignedUser.role : 'Member';
+    const userNid = assignedUser ? assignedUser.nid : '';
+    const userNominee = assignedUser ? assignedUser.nomineeName : '';
+    const userNomineeRel = assignedUser ? assignedUser.nomineeRelation : '';
 
     card.innerHTML = `
       <div>
@@ -2541,6 +2871,18 @@ function renderMembersGrid() {
           <span>Grand Total: <strong class="text-slate-900 dark:text-white font-black">${formatCurrency(m.totalAmount)}</strong></span>
           ${hasPending ? `<span class="text-rose-500 font-bold">Pending: ${formatCurrency(m.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
         </div>
+
+        <!-- Identification & Nominee Summary Badges -->
+        <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-id-card text-[10px]"></i> Own NID:</span>
+            <span class="font-mono font-semibold text-slate-700 dark:text-slate-300">${userNid || '<span class="text-slate-400 font-normal italic">Not set</span>'}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-user-shield text-[10px]"></i> Nominee:</span>
+            <span class="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">${userNominee ? `${userNominee} ${userNomineeRel ? '(' + userNomineeRel + ')' : ''}` : '<span class="text-slate-400 font-normal italic">None</span>'}</span>
+          </div>
+        </div>
       </div>
 
       <div class="flex items-center gap-2 mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -2551,6 +2893,12 @@ function renderMembersGrid() {
           <a href="tel:${m.phone}" title="Call Member" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
             <i class="fa-solid fa-phone text-xs"></i>
           </a>
+        ` : ''}
+
+        ${isAdmin() && assignedUser ? `
+          <button onclick="openAddUserModal('${assignedUser.id}')" title="Admin: Edit Member Photo, NID &amp; Role" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
+            <i class="fa-solid fa-user-pen text-xs"></i>
+          </button>
         ` : ''}
 
         <button onclick="openMemberStatement('${m.name.replace(/'/g, "\\'")}')" class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-800 dark:text-brand-300 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-brand-200 dark:border-brand-800">
@@ -2571,6 +2919,12 @@ function openMemberStatement(memberName) {
   }
   if (!member) return;
 
+  // Match user record for NID & Nominee info
+  const assignedUser = state.users.find(u => 
+    (u.sheetName && u.sheetName.toLowerCase() === member.name.toLowerCase()) ||
+    u.name.toLowerCase() === member.name.toLowerCase()
+  );
+
   document.getElementById('modal-member-name').textContent = member.name;
   document.getElementById('modal-member-id').textContent = member.id || 'N/A';
   document.getElementById('modal-member-regular').textContent = formatCurrency(member.regularAmount);
@@ -2579,6 +2933,22 @@ function openMemberStatement(memberName) {
   document.getElementById('modal-member-extra-count').textContent = `${member.extraCount} Extra Slips`;
   document.getElementById('modal-member-total').textContent = formatCurrency(member.totalAmount);
   document.getElementById('modal-member-status').textContent = member.pendingAmount > 0 ? `Pending: ${formatCurrency(member.pendingAmount)}` : 'Cleared';
+
+  // NID & Nominee fields
+  const nidEl = document.getElementById('modal-member-nid');
+  const nomineeEl = document.getElementById('modal-member-nominee');
+  if (nidEl) {
+    nidEl.textContent = (assignedUser && assignedUser.nid) ? assignedUser.nid : 'Not Recorded';
+  }
+  if (nomineeEl) {
+    if (assignedUser && assignedUser.nomineeName) {
+      const rel = assignedUser.nomineeRelation ? ` (${assignedUser.nomineeRelation})` : '';
+      const nNid = assignedUser.nomineeNid ? ` • NID: ${assignedUser.nomineeNid}` : '';
+      nomineeEl.textContent = `${assignedUser.nomineeName}${rel}${nNid}`;
+    } else {
+      nomineeEl.textContent = 'None Recorded';
+    }
+  }
 
   const tbody = document.getElementById('modal-statement-body');
   tbody.innerHTML = '';
@@ -3050,3 +3420,30 @@ function exportMembersList() {
   XLSX.writeFile(wb, `Al_Ikhlas_Members_Summary_${new Date().toISOString().slice(0, 10)}.xlsx`);
   showToast('Exported members summary to Excel!', 'success');
 }
+
+// Global Window Handler Registrations
+window.handleLogoUpload = handleLogoUpload;
+window.handleRemoveLogo = handleRemoveLogo;
+window.handleAdminUserPhotoSelected = handleAdminUserPhotoSelected;
+window.handleAdminRemoveUserPhoto = handleAdminRemoveUserPhoto;
+window.openAddUserModal = openAddUserModal;
+window.closeUserModal = closeUserModal;
+window.handleUserSubmit = handleUserSubmit;
+window.openMemberProfileModal = openMemberProfileModal;
+window.closeMemberProfileModal = closeMemberProfileModal;
+window.handleMemberProfileSubmit = handleMemberProfileSubmit;
+window.handleProfilePhotoSelected = handleProfilePhotoSelected;
+window.handleRemoveProfilePhoto = handleRemoveProfilePhoto;
+window.openMemberStatement = openMemberStatement;
+window.closeStatementModal = closeStatementModal;
+window.printMemberStatement = printMemberStatement;
+window.exportMyStatementExcel = exportMyStatementExcel;
+window.exportMembersList = exportMembersList;
+window.exportLedgerCSV = exportLedgerCSV;
+window.quickFillAdminLogin = quickFillAdminLogin;
+window.handleLoginSubmit = handleLoginSubmit;
+window.handleLogout = handleLogout;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.switchTab = switchTab;
+window.toggleTheme = toggleTheme;
+window.copyToClipboard = copyToClipboard;

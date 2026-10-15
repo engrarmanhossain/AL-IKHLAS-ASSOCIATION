@@ -1073,6 +1073,9 @@ function openMemberProfileModal() {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.scrollTop = 0;
+    const formScrollArea = modal.querySelector('.overflow-y-auto');
+    if (formScrollArea) formScrollArea.scrollTop = 0;
   }
 }
 
@@ -1383,6 +1386,9 @@ function openAddUserModal(userId = null) {
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+  modal.scrollTop = 0;
+  const formScrollArea = modal.querySelector('.overflow-y-auto');
+  if (formScrollArea) formScrollArea.scrollTop = 0;
 }
 
 function closeUserModal() {

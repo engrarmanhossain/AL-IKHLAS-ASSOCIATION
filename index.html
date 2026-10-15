@@ -744,24 +744,26 @@
   </div>
 
   <!-- MODAL: ADD / EDIT USER & ROLE -->
-  <div id="modal-user" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
-      <button onclick="closeUserModal()" class="absolute right-5 top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <div class="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
-        <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950 flex items-center justify-center text-lg">
-          <i class="fa-solid fa-user-gear"></i>
+  <div id="modal-user" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-auto max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 mb-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950 flex items-center justify-center text-lg shrink-0">
+            <i class="fa-solid fa-user-gear"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white" id="modal-user-title">Add / Edit User &amp; Role</h3>
+            <p class="text-xs text-slate-500">Manage association credentials, photo, NID and permission levels</p>
+          </div>
         </div>
-        <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white" id="modal-user-title">Add / Edit User &amp; Role</h3>
-          <p class="text-xs text-slate-500">Manage association credentials and permission levels</p>
-        </div>
+        <button type="button" onclick="closeUserModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition" title="Close Modal">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
       </div>
 
-      <form id="user-form" onsubmit="handleUserSubmit(event)" class="space-y-4">
-        <input type="hidden" id="form-user-id">
+      <form id="user-form" onsubmit="handleUserSubmit(event)" class="flex flex-col flex-1 min-h-0">
+        <div class="overflow-y-auto space-y-4 pr-1.5 flex-1">
+          <input type="hidden" id="form-user-id">
 
         <!-- Profile Picture Uploader for this User (Admin Control) -->
         <div class="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
@@ -865,13 +867,23 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button type="button" onclick="closeUserModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            Cancel
+        </div>
+
+        <!-- Sticky Always-Visible Footer: Save User & Close -->
+        <div class="flex items-center justify-between gap-3 pt-3.5 mt-3 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+          <button type="button" onclick="closeUserModal()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-xmark text-xs"></i>
+            <span>Close</span>
           </button>
-          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white transition shadow-sm">
-            Save User
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeUserModal()" class="hidden sm:inline-block px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+              Cancel
+            </button>
+            <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-brand-700 to-brand-600 hover:from-brand-600 hover:to-brand-500 text-white transition shadow-md shadow-brand-700/20 flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk text-xs"></i>
+              <span>Save User</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -992,23 +1004,25 @@
   </div>
 
   <!-- MODAL: MEMBER SELF-PROFILE EDIT (NO PASSWORD CHANGE OPTION) -->
-  <div id="modal-member-profile" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
-      <button onclick="closeMemberProfileModal()" class="absolute right-5 top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <div class="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
-        <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950 flex items-center justify-center text-lg">
-          <i class="fa-solid fa-user-pen"></i>
+  <div id="modal-member-profile" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative my-auto max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 mb-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950 flex items-center justify-center text-lg shrink-0">
+            <i class="fa-solid fa-user-pen"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Edit My Profile</h3>
+            <p class="text-xs text-slate-500">Update photo, phone, own NID &amp; nominee details</p>
+          </div>
         </div>
-        <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Edit My Profile</h3>
-          <p class="text-xs text-slate-500">Update your profile name and contact number</p>
-        </div>
+        <button type="button" onclick="closeMemberProfileModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition" title="Close Modal">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
       </div>
 
-      <form id="member-profile-form" onsubmit="handleMemberProfileSubmit(event)" class="space-y-4">
+      <form id="member-profile-form" onsubmit="handleMemberProfileSubmit(event)" class="flex flex-col flex-1 min-h-0">
+        <div class="overflow-y-auto space-y-4 pr-1.5 flex-1">
         <!-- Profile Picture Upload & Preview -->
         <div class="flex items-center gap-4 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
           <div class="relative shrink-0">
@@ -1111,14 +1125,23 @@
             </p>
           </div>
         </div>
+        </div>
 
-        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button type="button" onclick="closeMemberProfileModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            Cancel
+        <!-- Sticky Always-Visible Footer: Save Changes & Close -->
+        <div class="flex items-center justify-between gap-3 pt-3.5 mt-3 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+          <button type="button" onclick="closeMemberProfileModal()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-xmark text-xs"></i>
+            <span>Close</span>
           </button>
-          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white transition shadow-sm">
-            Save Changes
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeMemberProfileModal()" class="hidden sm:inline-block px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+              Cancel
+            </button>
+            <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-brand-700 to-brand-600 hover:from-brand-600 hover:to-brand-500 text-white transition shadow-md shadow-brand-700/20 flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk text-xs"></i>
+              <span>Save Changes</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>

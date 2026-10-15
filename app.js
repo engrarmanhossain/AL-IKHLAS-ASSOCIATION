@@ -45,7 +45,7 @@ const DEFAULT_BANK_DETAILS = {
   accountType: 'Current / Association Account',
   swiftCode: 'MTBLBDDH',
   instructions: 'Deposits can be made via MTB Branch Slips, BEFTN, NPSB, RTGS, or Internet Banking. Please mention your Full Name & Month in deposit remarks.',
-  liquidBalance: 20562.41,
+  liquidBalance: 22562.41,
   updatedAt: '15 Oct 2026',
   updatedBy: 'Admin / President'
 };
@@ -371,11 +371,11 @@ let state = {
   bankDetails: { ...DEFAULT_BANK_DETAILS },
   adminSubView: 'directory', // 'directory' | 'profile'
   treasury: {
-    totalDeposited: 324000,
+    totalDeposited: 322500,
     totalWithdrawn: 300000,
     totalDebited: 825.02,
     totalCredited: 887.43,
-    bankBalance: 20562.41,
+    bankBalance: 22562.41,
     bankName: 'Mutual Trust Bank PLC',
     bankAccount: '999101****351',
     investment: {
@@ -697,7 +697,7 @@ function renderBankDetailsModalContent() {
   viewContainer.classList.remove('hidden');
 
   const b = state.bankDetails || DEFAULT_BANK_DETAILS;
-  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 20562.41;
+  const currentBalance = state.treasury?.bankBalance || b.liquidBalance || 22562.41;
   const canEdit = canEditBankDetails();
 
   viewContainer.innerHTML = `
@@ -762,7 +762,7 @@ function renderBankDetailsModalContent() {
       </div>
       <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 col-span-2 sm:col-span-1">
         <span class="text-[10px] uppercase font-bold text-slate-400 block">Current Liquid Balance</span>
-        <span class="font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">${formatCurrency(currentBalance)}</span>
+        <span class="font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">${formatDecimalCurrency(currentBalance)}</span>
       </div>
     </div>
 
@@ -2894,11 +2894,13 @@ async function fetchLiveData(isManual = false) {
   // Cache busting: pass timestamp _t and use cache: 'no-store'
   const fullUrl = `${apiUrl}?token=${encodeURIComponent(token)}&_t=${Date.now()}`;
   const debitSheetUrl = `${apiUrl}?token=${encodeURIComponent(token)}&gid=1208245608&_t=${Date.now()}`;
+  const summarySheetUrl = `${apiUrl}?token=${encodeURIComponent(token)}&gid=1874744243&_t=${Date.now()}`;
 
   try {
-    const [response, debitResponse] = await Promise.all([
+    const [response, debitResponse, summaryResponse] = await Promise.all([
       fetch(fullUrl, { method: 'GET', cache: 'no-store' }),
-      fetch(debitSheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null)
+      fetch(debitSheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null),
+      fetch(summarySheetUrl, { method: 'GET', cache: 'no-store' }).catch(() => null)
     ]);
 
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
@@ -2928,6 +2930,21 @@ async function fetchLiveData(isManual = false) {
         console.warn('Debited list sheet parse error:', debitErr);
       }
     }
+
+    // If dedicated summary sheet returned live data, process executive rollup values directly
+    if (summaryResponse && summaryResponse.ok) {
+      try {
+        const summaryResult = await summaryResponse.json();
+        if (summaryResult && summaryResult.data && Array.isArray(summaryResult.data) && summaryResult.data.length > 1) {
+          processSummarySheetData(summaryResult.data);
+        }
+      } catch (sumErr) {
+        console.warn('Summary sheet parse error:', sumErr);
+      }
+    }
+
+    // Recalculate dynamic real-time Liquid Bank Balance
+    recalculateLiquidBalance();
 
     state.lastUpdated = new Date();
     updateSyncTimeBadge();
@@ -3038,6 +3055,103 @@ function processDebitedSheetData(rows) {
     renderTreasuryCards();
     renderBankLedgerTable();
   }
+}
+
+// Process exact Summary Sheet (gid 1874744243) for live Liquid Bank Balance ("Rest of Amount")
+function processSummarySheetData(rows) {
+  if (!rows || rows.length <= 1) return;
+
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row) continue;
+    for (let c = 0; c < row.length; c++) {
+      const cellStr = (row[c] || '').toString().trim().toLowerCase();
+
+      // Look for "rest of amount" or "liquid balance"
+      if (cellStr.includes('rest of amount') || cellStr.includes('liquid balance')) {
+        const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
+        const valRight = (row[c + 1] !== undefined && row[c + 1] !== '') ? parseFloat(row[c + 1]) : NaN;
+        const candidate = !isNaN(valBelow) && valBelow > 0 ? valBelow : (!isNaN(valRight) && valRight > 0 ? valRight : null);
+        if (candidate !== null) {
+          state.treasury.bankBalance = candidate;
+          state.treasury.availableLiquidity = candidate;
+        }
+      }
+
+      // Look for "total amount"
+      if (cellStr === 'total amount') {
+        const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
+        if (!isNaN(valBelow) && valBelow > 100000) {
+          state.treasury.totalDeposited = valBelow;
+        }
+      }
+
+      // Look for "active business investment"
+      if (cellStr.includes('active business investment')) {
+        const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
+        if (!isNaN(valBelow) && valBelow >= 50000) {
+          state.treasury.totalWithdrawn = valBelow;
+          state.treasury.activeInvestment = valBelow;
+        }
+      }
+
+      // Look for "total debited amount"
+      if (cellStr.includes('total debited amount')) {
+        const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
+        if (!isNaN(valBelow) && valBelow > 0) {
+          state.treasury.totalDebited = valBelow;
+        }
+      }
+
+      // Look for "total credited amount"
+      if (cellStr.includes('total credited amount')) {
+        const valBelow = (rows[r + 1] && rows[r + 1][c] !== undefined && rows[r + 1][c] !== '') ? parseFloat(rows[r + 1][c]) : NaN;
+        if (!isNaN(valBelow) && valBelow > 0) {
+          state.treasury.totalCredited = valBelow;
+        }
+      }
+    }
+  }
+
+  if (state.bankDetails) {
+    state.bankDetails.liquidBalance = state.treasury.bankBalance;
+  }
+
+  renderTreasuryCards();
+  renderBankLedgerTable();
+}
+
+// Dynamic Real-Time Liquid Bank Balance Calculation Engine
+function recalculateLiquidBalance() {
+  let receivedCapital = 0;
+  if (state.transactions && state.transactions.length > 0) {
+    state.transactions.forEach(tx => {
+      if (tx.status === 'Received') {
+        receivedCapital += (tx.amount || 0);
+      }
+    });
+  }
+
+  if (receivedCapital > 0) {
+    state.treasury.totalDeposited = receivedCapital;
+  }
+
+  const totalDep = state.treasury.totalDeposited || receivedCapital || 322500;
+  const totalInv = state.treasury.totalWithdrawn || 300000;
+  const totalDeb = state.treasury.totalDebited || 825.02;
+  const totalCred = state.treasury.totalCredited || 887.43;
+
+  // Formula: Liquid Bank Balance = Total Deposited - Active Investment - Bank Fees + Credited Profit
+  const calculatedLiquid = totalDep - totalInv - totalDeb + totalCred;
+  if (!isNaN(calculatedLiquid) && calculatedLiquid > 0) {
+    state.treasury.bankBalance = calculatedLiquid;
+    state.treasury.availableLiquidity = calculatedLiquid;
+    if (state.bankDetails) {
+      state.bankDetails.liquidBalance = calculatedLiquid;
+    }
+  }
+
+  renderTreasuryCards();
 }
 
 function updateSyncTimeBadge() {
@@ -3406,7 +3520,7 @@ function renderTreasuryCards() {
   const debitedEl = document.getElementById('treasury-debited-amount');
   const creditedEl = document.getElementById('treasury-credited-amount');
 
-  if (bankEl) bankEl.textContent = formatCurrency(state.treasury.bankBalance);
+  if (bankEl) bankEl.textContent = formatDecimalCurrency(state.treasury.bankBalance);
   if (investEl) investEl.textContent = formatCurrency(state.treasury.totalWithdrawn);
   if (debitedEl) debitedEl.textContent = formatDecimalCurrency(state.treasury.totalDebited || 825.02);
   if (creditedEl) creditedEl.textContent = '+' + formatDecimalCurrency(state.treasury.totalCredited || 887.43);

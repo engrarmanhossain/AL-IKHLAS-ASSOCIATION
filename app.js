@@ -504,6 +504,7 @@ function showToast(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initUsersAndAuth();
+  initGlobalConfig();
   loadSavedOverrides();
   setupEventListeners();
   populateApiSettingsForm();
@@ -679,7 +680,8 @@ async function handleLogoUpload(e) {
     state.associationLogo = compressed;
     localStorage.setItem(CONFIG.STORAGE_KEY_LOGO, compressed);
     applyAssociationLogo();
-    showToast('Association Logo updated globally!', 'success');
+    showToast('Association Logo updated locally! Syncing across all devices...', 'success');
+    syncConfigToCloud('logo', compressed);
   } catch (err) {
     console.error('Logo upload error:', err);
     showToast('Failed to process logo image.', 'error');
@@ -698,6 +700,7 @@ function handleRemoveLogo() {
     if (input) input.value = '';
     applyAssociationLogo();
     showToast('Logo reset to default emblem.', 'info');
+    syncConfigToCloud('logo', null);
   }
 }
 
@@ -939,7 +942,8 @@ function handleSaveBankDetails(e) {
   if (!isAdmin() || state.adminSubView === 'profile') {
     renderMemberPersonalView();
   }
-  showToast('Bank details updated successfully.', 'success');
+  showToast('Bank details saved locally! Syncing across all devices...', 'success');
+  syncConfigToCloud('bankDetails', state.bankDetails);
 }
 
 // ============================================================================
@@ -1170,7 +1174,8 @@ function handleSaveShareSchedule(e) {
   if (!isAdmin() || state.adminSubView === 'profile') {
     renderMemberPersonalView();
   }
-  showToast('Financial Year Share Schedule updated successfully.', 'success');
+  showToast('Share & Extra Schedule saved! Syncing across all devices...', 'success');
+  syncConfigToCloud('shareSchedule', updated);
 }
 
 function resetShareScheduleToDefault() {
@@ -2078,7 +2083,8 @@ function handleMemberProfileSubmit(e) {
   }
   closeMemberProfileModal();
 
-  showToast('Profile, NID, and nominee details updated successfully!', 'success');
+  showToast('Profile and photo saved! Syncing across all devices...', 'success');
+  syncConfigToCloud('users', state.users);
 }
 
 function printMemberStatement() {
@@ -2397,7 +2403,8 @@ function handleUserSubmit(e) {
   renderMembersGrid();
   renderAuthHeader();
   closeUserModal();
-  showToast(`Saved member profile, photo & role for "${name}"!`, 'success');
+  showToast(`Saved member profile, photo & role for "${name}"! Syncing across all devices...`, 'success');
+  syncConfigToCloud('users', state.users);
 }
 
 // Payment Status Overrides & Approval Actions
@@ -2572,9 +2579,34 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
   }
   
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 2. Action: Save Configuration via GET bridge (fallback)
+  if (e && e.parameter && e.parameter.action === "saveConfig") {
+    const type = e.parameter.type || "all";
+    const rawData = e.parameter.data || "{}";
+    let parsedData = rawData;
+    try { parsedData = JSON.parse(rawData); } catch(err) {}
+    saveDashboardConfig(ss, type, parsedData, e.parameter.user || "Admin");
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "Configuration successfully saved to Google Sheet tab: DashboardConfig",
+      type: type,
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 3. Action: Get Configuration only
+  if (e && e.parameter && e.parameter.action === "getConfig") {
+    const config = readDashboardConfig(ss);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      config: config
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   const allSheets = ss.getSheets();
 
-  // 2. Target Sheet GIDs for AL-IKHLAS ASSOCIATION (all member deposit tabs)
+  // 4. Target Sheet GIDs for AL-IKHLAS ASSOCIATION (all member deposit tabs)
   const TARGET_GIDS = [1702656514, 1874744243, 1208245608, 313675577];
 
   // If a single gid is specifically requested via ?gid=...
@@ -2593,7 +2625,7 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
     }
   }
 
-  // 3. Multi-Sheet Combiner: Collect all requested tabs
+  // 5. Multi-Sheet Combiner: Collect all requested tabs
   const sheetsToRead = [];
   const processedGids = new Set();
 
@@ -2608,6 +2640,7 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
   // Also include any other sheet with transaction headers if not already added
   for (const s of allSheets) {
     const gid = s.getSheetId();
+    if (s.getName() === "DashboardConfig") continue; // Exclude config sheet from transactions
     if (!processedGids.has(gid) && s.getLastRow() > 1) {
       const headerRow = s.getRange(1, 1, 1, Math.min(s.getLastColumn() || 1, 15)).getValues()[0];
       const headerStr = headerRow.join(" ").toLowerCase();
@@ -2622,12 +2655,13 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
     sheetsToRead.push(ss.getActiveSheet());
   }
 
-  // 4. Read and combine rows across all sheets with dynamic header mapping
+  // 6. Read and combine rows across all sheets with dynamic header mapping
   const combinedData = [];
   const sheetSummaries = [];
   let masterHeaders = null;
 
   sheetsToRead.forEach(s => {
+    if (s.getName() === "DashboardConfig") return;
     const values = s.getDataRange().getValues();
     if (!values || values.length <= 1) return;
 
@@ -2689,17 +2723,119 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
     }
   });
 
+  // 7. Read Live Central Configuration (Logo, Bank Details, Share Schedule, Member Profiles)
+  const liveConfig = readDashboardConfig(ss);
+
   const responsePayload = {
     status: "success",
     timestamp: new Date().toISOString(),
     isMultiSheet: true,
     sheets: sheetSummaries,
     totalRecords: combinedData.length - 1,
-    data: combinedData
+    data: combinedData,
+    config: liveConfig
   };
 
   return ContentService.createTextOutput(JSON.stringify(responsePayload))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const SECRET_TOKEN = "AlIkhlasSecure2024!";
+  let payload = {};
+  try {
+    payload = JSON.parse(e.postData.contents);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: "Invalid JSON payload" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (!payload || payload.token !== SECRET_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({ error: "Unauthorized: Invalid token" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const action = payload.action;
+  const type = payload.type || "all";
+  const data = payload.data;
+  const user = payload.updatedBy || "Admin";
+
+  if (action === "saveConfig") {
+    saveDashboardConfig(ss, type, data, user);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "Successfully saved " + type + " to Google Sheet DashboardConfig tab",
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "error",
+    message: "Unknown action"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getOrCreateConfigSheet(ss) {
+  let s = ss.getSheetByName("DashboardConfig");
+  if (!s) {
+    s = ss.insertSheet("DashboardConfig");
+    s.appendRow(["Key", "Value", "UpdatedAt", "UpdatedBy"]);
+    s.setColumnWidth(1, 150);
+    s.setColumnWidth(2, 600);
+    s.setColumnWidth(3, 180);
+    s.setColumnWidth(4, 150);
+  }
+  return s;
+}
+
+function saveDashboardConfig(ss, key, val, user) {
+  const s = getOrCreateConfigSheet(ss);
+  const data = s.getDataRange().getValues();
+  const strVal = (typeof val === "string") ? val : JSON.stringify(val);
+  const now = new Date().toISOString();
+  const by = user || "Admin";
+
+  if (key === "all" && typeof val === "object") {
+    Object.keys(val).forEach(k => {
+      saveDashboardConfig(ss, k, val[k], by);
+    });
+    return;
+  }
+
+  let found = false;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      s.getRange(i + 1, 2).setValue(strVal);
+      s.getRange(i + 1, 3).setValue(now);
+      s.getRange(i + 1, 4).setValue(by);
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    s.appendRow([key, strVal, now, by]);
+  }
+}
+
+function readDashboardConfig(ss) {
+  const s = ss.getSheetByName("DashboardConfig");
+  if (!s) return null;
+  const data = s.getDataRange().getValues();
+  if (!data || data.length <= 1) return null;
+
+  const config = {};
+  for (let i = 1; i < data.length; i++) {
+    const k = data[i][0];
+    const raw = data[i][1];
+    if (!k || raw === "" || raw === null || typeof raw === "undefined") continue;
+    try {
+      config[k] = JSON.parse(raw);
+    } catch(err) {
+      config[k] = raw;
+    }
+  }
+  return config;
 }
 
 function buildColumnMap(headers) {
@@ -2803,6 +2939,255 @@ function resetApiSettingsToDefault() {
 
 function copyAppsScriptCode() {
   copyToClipboard(UPGRADED_APPS_SCRIPT_CODE);
+}
+
+// ============================================================================
+// CENTRAL TWO-WAY CLOUD CONFIGURATION & PERSISTENCE ENGINE
+// ============================================================================
+
+function updateCloudSyncBadge(isLive = true) {
+  const dot = document.getElementById('diag-config-dot');
+  const txt = document.getElementById('diag-config-sync-status');
+  if (!dot || !txt) return;
+  if (isLive) {
+    dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm';
+    txt.textContent = 'Active (Live for All)';
+    txt.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate';
+  } else {
+    dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm';
+    txt.textContent = 'Local Standby';
+    txt.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 truncate';
+  }
+}
+
+function applyCloudConfig(cloudConfig, isSilent = false) {
+  if (!cloudConfig || typeof cloudConfig !== 'object') return;
+  let hasChanges = false;
+
+  // 1. Association Logo
+  if (typeof cloudConfig.associationLogo !== 'undefined' || typeof cloudConfig.logo !== 'undefined') {
+    const newLogo = cloudConfig.associationLogo || cloudConfig.logo || null;
+    if (newLogo !== state.associationLogo) {
+      state.associationLogo = newLogo;
+      if (newLogo) {
+        localStorage.setItem(CONFIG.STORAGE_KEY_LOGO, newLogo);
+      } else {
+        localStorage.removeItem(CONFIG.STORAGE_KEY_LOGO);
+      }
+      applyAssociationLogo();
+      hasChanges = true;
+    }
+  }
+
+  // 2. Bank Details
+  if (cloudConfig.bankDetails && typeof cloudConfig.bankDetails === 'object') {
+    state.bankDetails = Object.assign({}, DEFAULT_BANK_DETAILS, state.bankDetails, cloudConfig.bankDetails);
+    localStorage.setItem(CONFIG.STORAGE_KEY_BANK, JSON.stringify(state.bankDetails));
+    renderTreasuryCards();
+    if (!isAdmin() || state.adminSubView === 'profile') {
+      renderMemberPersonalView();
+    }
+    hasChanges = true;
+  }
+
+  // 3. Share Schedule
+  if (cloudConfig.shareSchedule && Array.isArray(cloudConfig.shareSchedule) && cloudConfig.shareSchedule.length > 0) {
+    state.shareSchedule = cloudConfig.shareSchedule;
+    localStorage.setItem(CONFIG.STORAGE_KEY_SCHEDULE, JSON.stringify(state.shareSchedule));
+    hasChanges = true;
+  }
+
+  // 4. User Profiles & Photos
+  if (cloudConfig.users && Array.isArray(cloudConfig.users) && cloudConfig.users.length > 0) {
+    cloudConfig.users.forEach(cu => {
+      const idx = state.users.findIndex(u => (cu.id && u.id === cu.id) || (cu.email && u.email.toLowerCase() === cu.email.toLowerCase()) || (cu.name && u.name.toLowerCase() === cu.name.toLowerCase()));
+      if (idx !== -1) {
+        const target = state.users[idx];
+        if (typeof cu.avatar !== 'undefined') target.avatar = cu.avatar;
+        if (cu.phone) target.phone = cu.phone;
+        if (cu.nid) target.nid = cu.nid;
+        if (cu.nomineeName) target.nomineeName = cu.nomineeName;
+        if (cu.nomineeNid) target.nomineeNid = cu.nomineeNid;
+        if (cu.nomineeRelation) target.nomineeRelation = cu.nomineeRelation;
+        if (cu.membershipFrom) target.membershipFrom = cu.membershipFrom;
+        if (cu.membershipTo) target.membershipTo = cu.membershipTo;
+        if (typeof cu.assignedShares !== 'undefined') target.assignedShares = cu.assignedShares;
+        if (cu.role) target.role = cu.role;
+        if (cu.password) target.password = cu.password;
+        if (cu.name) target.name = cu.name;
+        if (cu.sheetName) target.sheetName = cu.sheetName;
+      } else {
+        state.users.push(cu);
+      }
+    });
+
+    if (state.currentUser) {
+      const me = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
+      if (me) {
+        Object.assign(state.currentUser, me);
+        localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
+      }
+    }
+
+    localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
+    renderAuthHeader();
+    if (isAdmin()) {
+      renderMembersGrid();
+      renderAdminUsersTable();
+    } else {
+      renderMemberPersonalView();
+    }
+    hasChanges = true;
+  }
+
+  if (hasChanges) {
+    updateCloudSyncBadge(true);
+    if (!isSilent) {
+      console.log('Al-Ikhlas Central Cloud Configuration updated for all members.');
+    }
+  }
+}
+
+async function initGlobalConfig() {
+  try {
+    const res = await fetch('./config.json?_t=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg && typeof cfg === 'object') {
+        applyCloudConfig(cfg, true);
+      }
+    }
+  } catch (err) {
+    console.info('initGlobalConfig: Using local storage and spreadsheet bridge.');
+  }
+}
+
+async function syncConfigToCloud(type, data) {
+  const apiUrl = getApiUrl();
+  const token = getToken();
+  if (!apiUrl) return false;
+
+  const payload = {
+    token: token,
+    action: 'saveConfig',
+    type: type,
+    data: data,
+    updatedAt: new Date().toISOString(),
+    updatedBy: state.currentUser ? `${state.currentUser.name} (${state.currentUser.role})` : 'President (Arman Hossain)'
+  };
+
+  showToast(`Broadcasting ${type} update to Google Cloud Spreadsheet...`, 'info');
+
+  let success = false;
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const json = await res.json().catch(() => null);
+      if (json && json.status === 'success') success = true;
+    }
+  } catch (postErr) {
+    console.warn('POST sync error, trying GET fallback:', postErr);
+  }
+
+  const strData = JSON.stringify(data);
+  if (!success && strData.length < 5000) {
+    try {
+      const getUrl = `${apiUrl}?token=${encodeURIComponent(token)}&action=saveConfig&type=${encodeURIComponent(type)}&data=${encodeURIComponent(strData)}&_t=${Date.now()}`;
+      const getRes = await fetch(getUrl, { cache: 'no-store' });
+      if (getRes.ok) {
+        const getJson = await getRes.json().catch(() => null);
+        if (getJson && getJson.status === 'success') success = true;
+      }
+    } catch (getErr) {
+      console.warn('GET bridge fallback error:', getErr);
+    }
+  }
+
+  if (success) {
+    showToast(`${type} updated for all users via Google Cloud Spreadsheet!`, 'success');
+    updateCloudSyncBadge(true);
+    return true;
+  } else {
+    showToast(`${type} saved in local session. Make sure upgraded Google Apps Script is deployed to sync for all members.`, 'info');
+    updateCloudSyncBadge(false);
+    return false;
+  }
+}
+
+async function forceSyncAllToCloud() {
+  const btn = document.getElementById('btn-force-sync-cloud');
+  if (btn) btn.disabled = true;
+  showToast('Broadcasting all settings (Logo, Bank Details, Photos, Schedule) to Google Sheet...', 'info');
+
+  const bundle = {
+    associationLogo: state.associationLogo,
+    bankDetails: state.bankDetails,
+    shareSchedule: state.shareSchedule,
+    users: state.users
+  };
+
+  const ok = await syncConfigToCloud('all', bundle);
+  if (ok) {
+    showToast('All dashboard settings are now permanently saved in Google Spreadsheet for all visitors!', 'success');
+  }
+  if (btn) btn.disabled = false;
+}
+
+function exportGlobalConfigFile() {
+  const bundle = {
+    version: '1.0.0',
+    updatedAt: new Date().toISOString(),
+    updatedBy: state.currentUser ? `${state.currentUser.name} (${state.currentUser.role})` : 'President (Arman Hossain)',
+    associationLogo: state.associationLogo,
+    bankDetails: state.bankDetails,
+    shareSchedule: state.shareSchedule,
+    users: state.users
+  };
+
+  const jsonStr = JSON.stringify(bundle, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'config.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported config.json! You can commit this file or import it on any device.', 'success');
+}
+
+function importGlobalConfigFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (parsed && typeof parsed === 'object') {
+        applyCloudConfig(parsed, false);
+        showToast('Successfully imported global settings! Broadcasting to Google Cloud...', 'info');
+        await syncConfigToCloud('all', {
+          associationLogo: state.associationLogo,
+          bankDetails: state.bankDetails,
+          shareSchedule: state.shareSchedule,
+          users: state.users
+        });
+        showToast('Configuration applied and synced everywhere!', 'success');
+      } else {
+        showToast('Invalid configuration file format.', 'error');
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      showToast('Could not parse JSON configuration file.', 'error');
+    }
+  };
+  reader.readAsText(file);
 }
 
 function updateDiagnosticDisplay(isSuccess, data, errorMessage = '') {
@@ -3009,6 +3394,12 @@ async function fetchLiveData(isManual = false) {
 
     // Recalculate dynamic real-time Liquid Bank Balance
     recalculateLiquidBalance();
+
+    // Synchronize Live Central Configuration (Logo, Bank Details, Share Schedule, Member Profiles)
+    if (result.config && typeof result.config === 'object') {
+      applyCloudConfig(result.config, true);
+      updateCloudSyncBadge(true);
+    }
 
     state.lastUpdated = new Date();
     updateSyncTimeBadge();
@@ -5056,3 +5447,8 @@ window.setBankLedgerView = setBankLedgerView;
 window.openInvestmentModal = openInvestmentModal;
 window.closeInvestmentModal = closeInvestmentModal;
 window.renderInvestmentModalContent = renderInvestmentModalContent;
+window.forceSyncAllToCloud = forceSyncAllToCloud;
+window.exportGlobalConfigFile = exportGlobalConfigFile;
+window.importGlobalConfigFile = importGlobalConfigFile;
+window.syncConfigToCloud = syncConfigToCloud;
+window.applyCloudConfig = applyCloudConfig;

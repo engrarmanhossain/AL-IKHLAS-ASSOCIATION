@@ -138,6 +138,26 @@ let state = {
   autoRefreshIntervalMs: 30000,
   isFetching: false,
   lastUpdated: null,
+  treasury: {
+    totalDeposited: 324000,
+    totalWithdrawn: 300000,
+    totalDebited: 825.02,
+    totalCredited: 887.43,
+    bankBalance: 20562.41,
+    bankName: 'Mutual Trust Bank PLC',
+    bankAccount: '999101****351',
+    investment: {
+      name: 'M/S MONOARA DAIRY FARM',
+      owner: 'Ikhtiar Uddin',
+      phone: '+8801600102219',
+      amount: 300000,
+      tranches: '৳2,50,000 (27/07/2026) + ৳50,000 (07/09/2026)',
+      duration: '1 Year',
+      terms: 'Depend On Profit',
+      status: 'Active'
+    },
+    bankDebits: []
+  }
 };
 
 // Helper: Format Currency (BDT / ৳)
@@ -1781,12 +1801,61 @@ function processRawData(rows, triggerToast = false) {
 
   const parsedTransactions = [];
   const members = new Map();
+  const bankDebits = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length === 0) continue;
 
+    const srcGid = (row[colIndex.sourceGid] || '').toString().trim();
+    const srcSheet = (row[colIndex.sourceSheet] || '').toString().trim().toLowerCase();
     const rawName = (row[colIndex.name] || '').toString().trim();
+    const rawNameUpper = rawName.toUpperCase();
+
+    // 1. Process Bank Debited List (gid 1208245608 or sheet includes 'debit')
+    if (srcGid === '1208245608' || srcSheet.includes('debit')) {
+      let debitDate = null;
+      if (row[colIndex.depositDate]) {
+        debitDate = new Date(row[colIndex.depositDate]);
+      }
+      const debitAmt = parseFloat(row[colIndex.amount]) || 0;
+      const cause = row[colIndex.id] || row[3] || 'Account maintenance';
+      const type = row[colIndex.phone] || row[4] || (debitAmt >= 50000 ? 'Withdraw' : 'Debit');
+      const rest = parseFloat(row[colIndex.trxId] || row[6] || 0);
+      const msg = row[colIndex.shares] || row[7] || '';
+      bankDebits.push({
+        date: debitDate,
+        dateFormatted: formatDate(debitDate),
+        amount: debitAmt,
+        cause: cause,
+        type: type,
+        rest: rest,
+        message: msg
+      });
+      continue;
+    }
+
+    // 2. Process Investment Sheet (gid 313675577 or sheet includes 'invest')
+    if (srcGid === '313675577' || srcSheet.includes('invest')) {
+      continue;
+    }
+
+    // 3. Process Summary Sheet (gid 1874744243 or sheet includes 'summary')
+    // Extract executive rollup values without double-counting as transactions
+    if (srcGid === '1874744243' || srcSheet.includes('summary') || rawNameUpper === 'TOTAL' || rawNameUpper.includes('FIRST DEPOSIT') || rawNameUpper.includes('FRIST DEPOSIT')) {
+      if (row[6] && !isNaN(parseFloat(row[6]))) {
+        const val = parseFloat(row[6]);
+        if (val > 100000) state.treasury.totalDeposited = val;
+        else if (val > 20000 && val < 50000) state.treasury.bankBalance = val;
+      }
+      if (row[8] && !isNaN(parseFloat(row[8]))) {
+        const val = parseFloat(row[8]);
+        if (val >= 250000) state.treasury.totalWithdrawn = val;
+      }
+      continue;
+    }
+
+    // 4. Regular Member Deposit Transactions (From Form Responses 1)
     if (!rawName) continue;
 
     const rawAmt = parseFloat(row[colIndex.amount]);
@@ -1818,8 +1887,6 @@ function processRawData(rows, triggerToast = false) {
     }
 
     // Unique Identifier for this row
-    const srcGid = (row[colIndex.sourceGid] || '').toString().trim();
-    const srcSheet = (row[colIndex.sourceSheet] || '').toString().trim();
     const uniqueId = `row_${i}_${srcGid}_${rawName}_${amount}_${depDate ? depDate.getTime() : i}`;
 
     // Status strictly parsed from spreadsheet
@@ -1898,6 +1965,10 @@ function processRawData(rows, triggerToast = false) {
     m.transactions.push(tx);
   }
 
+  if (bankDebits.length > 0) {
+    state.treasury.bankDebits = bankDebits;
+  }
+
   // Prepend custom transactions added via admin panel
   state.customTransactions.forEach(ctx => {
     parsedTransactions.unshift(ctx);
@@ -1927,6 +1998,8 @@ function processRawData(rows, triggerToast = false) {
 
   populateFilterDropdowns();
   updateKPIs();
+  renderTreasuryCards();
+  renderBankLedgerTable();
   renderCharts();
   renderMembersGrid();
   renderPendingQueue();
@@ -2009,6 +2082,97 @@ function updateKPIs() {
 
   const ledgerTab = document.getElementById('ledger-tab-count');
   if (ledgerTab) ledgerTab.textContent = state.transactions.length;
+}
+
+// Treasury & Bank Balance Renderers (Tabs: Summary, Debited List, Investment)
+function renderTreasuryCards() {
+  const bankEl = document.getElementById('treasury-bank-balance');
+  const investEl = document.getElementById('treasury-invest-amount');
+  const debitedEl = document.getElementById('treasury-debited-amount');
+  const creditedEl = document.getElementById('treasury-credited-amount');
+
+  if (bankEl) bankEl.textContent = formatCurrency(state.treasury.bankBalance);
+  if (investEl) investEl.textContent = formatCurrency(state.treasury.totalWithdrawn);
+  if (debitedEl) debitedEl.textContent = '৳ ' + (state.treasury.totalDebited || 825.02).toLocaleString();
+  if (creditedEl) creditedEl.textContent = '৳ ' + (state.treasury.totalCredited || 887.43).toLocaleString();
+}
+
+function renderBankLedgerTable() {
+  const tbody = document.getElementById('bank-ledger-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const entries = state.treasury.bankDebits && state.treasury.bankDebits.length > 0 ? state.treasury.bankDebits : [
+    { dateFormatted: '20-Oct-2025', cause: 'Account maintenance', type: 'Debit', amount: 172.50, rest: 24327.50, message: 'MTB A/C 999***0351 debited BDT 172.50. Available: ৳24,327.50' },
+    { dateFormatted: '31-Dec-2025', cause: 'Account maintenance', type: 'Debit', amount: 11.33, rest: 72391.68, message: 'MTB A/C 999***0351 debited BDT 11.33. Available: ৳72,391.68' },
+    { dateFormatted: '31-Dec-2025', cause: 'Interest (Profit)', type: 'Credit', amount: 75.51, rest: 72403.01, message: 'MTB A/C 999***0351 credited BDT 75.51. Available: ৳72,403.01' },
+    { dateFormatted: '31-Dec-2025', cause: 'Account maintenance', type: 'Debit', amount: 200.00, rest: 72191.68, message: 'MTB A/C 999***0351 debited BDT 200.00. Available: ৳72,191.68' },
+    { dateFormatted: '31-Dec-2025', cause: 'Account maintenance', type: 'Debit', amount: 30.00, rest: 72161.68, message: 'MTB A/C 999***0351 debited BDT 30.00. Available: ৳72,161.68' },
+    { dateFormatted: '01-Jul-2026', cause: 'Interest (Profit)', type: 'Credit', amount: 811.92, rest: 214973.60, message: 'MTB A/C 999***0351 credited BDT 811.92. Available: ৳214,973.60' },
+    { dateFormatted: '01-Jul-2026', cause: 'Account maintenance', type: 'Debit', amount: 81.19, rest: 214892.41, message: 'MTB A/C 999***0351 debited BDT 81.19. Available: ৳214,892.41' },
+    { dateFormatted: '01-Jul-2026', cause: 'Account maintenance', type: 'Debit', amount: 200.00, rest: 214692.41, message: 'MTB A/C 999***0351 debited BDT 200.00. Available: ৳214,692.41' },
+    { dateFormatted: '01-Jul-2026', cause: 'Account maintenance', type: 'Debit', amount: 30.00, rest: 214662.41, message: 'MTB A/C 999***0351 debited BDT 30.00. Available: ৳214,662.41' },
+    { dateFormatted: '27-Jul-2026', cause: 'Withdraw for Investment (Monoara Dairy)', type: 'Withdraw', amount: 250000.00, rest: 662.41, message: 'MTB A/C 999***0351 debited BDT 250,000.00 for investment' },
+    { dateFormatted: '27-Jul-2026', cause: 'Service Charge', type: 'Debit', amount: 100.00, rest: 562.41, message: 'MTB A/C 999***0351 debited BDT 100.00. Available: ৳562.41' },
+    { dateFormatted: '07-Sep-2026', cause: 'Withdraw for Investment (Monoara Dairy Tranche 2)', type: 'Withdraw', amount: 50000.00, rest: 562.41, message: 'MTB A/C 999***0351 debited BDT 50,000.00 for investment' }
+  ];
+
+  entries.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
+    const isCredit = item.type === 'Credit' || (item.cause && item.cause.toLowerCase().includes('interest'));
+    const isWithdraw = item.type === 'Withdraw' || item.amount >= 50000;
+    const badgeClass = isCredit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                       isWithdraw ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                       'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+
+    tr.innerHTML = `
+      <td class="py-2.5 px-3 text-slate-800 dark:text-slate-200 font-semibold">${item.dateFormatted || '-'}</td>
+      <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300">${item.cause || 'Maintenance'}</td>
+      <td class="py-2.5 px-3 text-center">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${item.type || 'Debit'}</span>
+      </td>
+      <td class="py-2.5 px-3 text-right font-bold ${isCredit ? 'text-emerald-600' : isWithdraw ? 'text-blue-600' : 'text-rose-600'}">
+        ${isCredit ? '+' : '-'}${formatCurrency(item.amount)}
+      </td>
+      <td class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400 font-bold">${formatCurrency(item.rest)}</td>
+      <td class="py-2.5 px-3 text-[10px] text-slate-400 truncate max-w-xs" title="${item.message || ''}">${item.message || '-'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openBankLedgerModal() {
+  renderBankLedgerTable();
+  const m = document.getElementById('modal-bank-ledger');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+}
+
+function closeBankLedgerModal() {
+  const m = document.getElementById('modal-bank-ledger');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+}
+
+function openInvestmentModal() {
+  const m = document.getElementById('modal-investment');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+}
+
+function closeInvestmentModal() {
+  const m = document.getElementById('modal-investment');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
 }
 
 // Populate Filters

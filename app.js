@@ -399,6 +399,7 @@ let state = {
   lastUpdated: null,
   associationLogo: null,
   shareSchedule: [],
+  shareScheduleFromSheet: false,
   bankDetails: { ...DEFAULT_BANK_DETAILS },
   adminSubView: 'directory', // 'directory' | 'profile'
   treasury: {
@@ -952,6 +953,9 @@ function handleSaveBankDetails(e) {
 // ============================================================================
 
 function initShareSchedule() {
+  if (state.shareScheduleFromSheet && state.shareSchedule && state.shareSchedule.length > 0) {
+    return;
+  }
   const stored = localStorage.getItem(CONFIG.STORAGE_KEY_SCHEDULE);
   if (stored) {
     try {
@@ -968,7 +972,9 @@ function initShareSchedule() {
 }
 
 function openShareScheduleModal() {
-  initShareSchedule();
+  if (!state.shareSchedule || state.shareSchedule.length === 0) {
+    initShareSchedule();
+  }
   renderShareScheduleModalContent(false);
   const modal = document.getElementById('modal-share-schedule');
   if (modal) {
@@ -1058,7 +1064,13 @@ function renderShareScheduleModalContent(isEditing = false) {
     }
 
   } else {
-    // VIEW MODE: EXACT REPLICA OF USER ATTACHED IMAGE TABLE
+    // VIEW MODE: EXACT REPLICA OF USER ATTACHED IMAGE TABLE (REAL-TIME SYNCED)
+    const activeRow = schedule.find(s => (s.year || '').includes('2025-2026')) || schedule[0] || { year: '2025–2026', shareValue: 2000, extraPerShare: 5000 };
+    const curShareStr = (activeRow.shareValue !== '' && activeRow.shareValue !== null && !isNaN(activeRow.shareValue)) ?
+      '৳' + Number(activeRow.shareValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+    const curExtraStr = (activeRow.extraPerShare !== '' && activeRow.extraPerShare !== null && !isNaN(activeRow.extraPerShare)) ?
+      '৳' + Number(activeRow.extraPerShare).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+
     let rowsHtml = schedule.map((row) => {
       const formattedShareVal = (row.shareValue !== '' && row.shareValue !== null && !isNaN(row.shareValue)) ?
         Number(row.shareValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
@@ -1082,6 +1094,17 @@ function renderShareScheduleModalContent(isEditing = false) {
 
     container.innerHTML = `
       <div class="space-y-3">
+        <!-- Live Sync Header Indicator -->
+        <div class="flex items-center justify-between text-xs px-1">
+          <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Live Synced with Google Spreadsheet (Summary Tab)</span>
+          </div>
+          <button type="button" onclick="refreshShareScheduleFromSheet()" class="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-rotate text-[10px]"></i> Sync Now
+          </button>
+        </div>
+
         <!-- Replicated High-Contrast Table as in User Uploaded Photo -->
         <div class="border-[2px] border-slate-900 dark:border-slate-600 rounded-xl overflow-hidden shadow-md">
           <table class="w-full text-center text-xs border-collapse">
@@ -1107,7 +1130,7 @@ function renderShareScheduleModalContent(isEditing = false) {
         <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-calendar-check text-amber-600"></i>
-            <span>Current Active Financial Year: <strong>2025–2026</strong> (Share Value: ৳2,000.00 • Extra: ৳5,000.00)</span>
+            <span>Current Active Financial Year: <strong>${activeRow.year}</strong> (Share Value: ${curShareStr} • Extra: ${curExtraStr})</span>
           </div>
           <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-200/60 dark:bg-amber-900/80 px-2 py-0.5 rounded">
             11-Year Schedule
@@ -1189,6 +1212,137 @@ function resetShareScheduleToDefault() {
     localStorage.removeItem(CONFIG.STORAGE_KEY_SCHEDULE);
     renderShareScheduleModalContent(true);
     showToast('Schedule reset to default roadmap.', 'info');
+  }
+}
+
+// Parse real-time Financial Year Share & Extra Schedule from spreadsheet rows
+function parseShareScheduleFromSheetData(rows) {
+  if (!rows || !Array.isArray(rows) || rows.length < 2) return null;
+
+  let fyCol = -1;
+  let svCol = -1;
+  let extraCol = -1;
+  let notesCol = -1;
+  let headerRow = -1;
+
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || !Array.isArray(row)) continue;
+    for (let c = 0; c < row.length; c++) {
+      const cellStr = (row[c] || '').toString().trim().toLowerCase();
+      if (cellStr === 'financial year' || (cellStr.includes('financial year') && !cellStr.includes('from') && !cellStr.includes('to'))) {
+        let sc = -1, ec = -1, nc = -1;
+        for (let c2 = 0; c2 < row.length; c2++) {
+          const v2 = (row[c2] || '').toString().trim().toLowerCase();
+          if (v2.includes('extra')) {
+            ec = c2;
+          } else if (v2.includes('share')) {
+            sc = c2;
+          }
+          if (v2.includes('note') || v2.includes('remark') || v2.includes('comment')) {
+            nc = c2;
+          }
+        }
+        if (sc !== -1 && ec !== -1) {
+          fyCol = c;
+          svCol = sc;
+          extraCol = ec;
+          notesCol = nc;
+          headerRow = r;
+          break;
+        }
+      }
+    }
+    if (headerRow !== -1) break;
+  }
+
+  if (headerRow === -1 || fyCol === -1) return null;
+
+  const parsedSchedule = [];
+  const cleanNum = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    if (typeof val === 'number') return isNaN(val) ? '' : val;
+    const cleaned = val.toString().replace(/[৳,$\sBDT]/gi, '').trim();
+    if (!cleaned) return '';
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? '' : num;
+  };
+
+  for (let r = headerRow + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row) continue;
+    const rawYear = (row[fyCol] || '').toString().trim();
+    if (!rawYear) continue;
+
+    const lowerYear = rawYear.toLowerCase();
+    if (lowerYear.includes('total') || lowerYear.includes('rest of') || lowerYear.includes('member name')) {
+      break;
+    }
+
+    if (!/\d{4}/.test(rawYear) && !lowerYear.includes('fy') && !lowerYear.includes('year')) {
+      continue;
+    }
+
+    const rawShare = svCol !== -1 ? row[svCol] : '';
+    const rawExtra = extraCol !== -1 ? row[extraCol] : '';
+    const rawNotes = notesCol !== -1 ? (row[notesCol] || '').toString().trim() : '';
+
+    const shareNum = cleanNum(rawShare);
+    const extraNum = cleanNum(rawExtra);
+
+    parsedSchedule.push({
+      year: rawYear,
+      shareValue: shareNum,
+      extraPerShare: extraNum,
+      notes: rawNotes
+    });
+  }
+
+  return parsedSchedule.length > 0 ? parsedSchedule : null;
+}
+
+// Apply real-time parsed schedule into application state & views
+function applyShareScheduleFromSheet(sheetSchedule) {
+  if (!sheetSchedule || !Array.isArray(sheetSchedule) || sheetSchedule.length === 0) return;
+
+  state.shareSchedule = sheetSchedule;
+  state.shareScheduleFromSheet = true;
+  localStorage.setItem(CONFIG.STORAGE_KEY_SCHEDULE, JSON.stringify(sheetSchedule));
+
+  // If schedule modal is open in view mode, re-render immediately with fresh data
+  const scheduleModal = document.getElementById('modal-share-schedule');
+  if (scheduleModal && !scheduleModal.classList.contains('hidden')) {
+    const isEditForm = document.getElementById('share-schedule-edit-form');
+    if (!isEditForm) {
+      renderShareScheduleModalContent(false);
+    }
+  }
+
+  // Update sync badge in modal if present
+  const syncBadge = document.getElementById('share-schedule-sync-badge');
+  if (syncBadge) {
+    syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>Live Synced</span>';
+  }
+
+  // Re-render Member Personal View to update Card C if visible
+  if (!isAdmin() || state.adminSubView === 'profile') {
+    renderMemberPersonalView();
+  }
+}
+
+// Manual live sync action for Share Schedule modal
+async function refreshShareScheduleFromSheet() {
+  const btn = document.getElementById('btn-refresh-schedule-modal');
+  const icon = btn?.querySelector('i');
+  if (icon) icon.classList.add('fa-spin');
+  showToast('Fetching latest Financial Year Schedule from Google Sheet...', 'info');
+  try {
+    await fetchLiveData(true);
+    showToast('Financial Year Schedule updated from Google Sheet!', 'success');
+  } catch (err) {
+    showToast('Failed to refresh schedule: ' + (err.message || 'Network error'), 'error');
+  } finally {
+    if (icon) icon.classList.remove('fa-spin');
   }
 }
 
@@ -1558,6 +1712,16 @@ function renderMemberPersonalView() {
                          roleBadge === 'Accountant' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                          'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
 
+  const schedRow = (state.shareSchedule && state.shareSchedule.find(s => (s.year || '').includes('2025-2026'))) ||
+                   (state.shareSchedule && state.shareSchedule[0]) ||
+                   { year: '2025–2026', shareValue: 2000, extraPerShare: 5000 };
+  const schedShareFormatted = (schedRow.shareValue !== '' && schedRow.shareValue !== null && !isNaN(schedRow.shareValue))
+    ? '৳' + Number(schedRow.shareValue).toLocaleString('en-US')
+    : '—';
+  const schedExtraFormatted = (schedRow.extraPerShare !== '' && schedRow.extraPerShare !== null && !isNaN(schedRow.extraPerShare))
+    ? '৳' + Number(schedRow.extraPerShare).toLocaleString('en-US')
+    : '—';
+
   let transactionsHtml = '';
   if (memberData.transactions && memberData.transactions.length > 0) {
     transactionsHtml = memberData.transactions.map((tx) => {
@@ -1791,13 +1955,13 @@ function renderMemberPersonalView() {
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">2025–2036</span>
           </div>
           <div class="mt-3">
-            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">FY 2025–2026 Rates</span>
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">FY ${schedRow.year} Rates</span>
             <div class="text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-0.5 flex items-center justify-between">
-              <span>Share: <strong class="text-emerald-600">৳2,000</strong></span>
-              <span>Extra: <strong class="text-purple-600">৳5,000</strong></span>
+              <span>Share: <strong class="text-emerald-600">${schedShareFormatted}</strong></span>
+              <span>Extra: <strong class="text-purple-600">${schedExtraFormatted}</strong></span>
             </div>
             <div class="mt-2 text-[11px] text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-              <span>11-Year Roadmap</span>
+              <span class="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Synced</span>
               <button type="button" onclick="openShareScheduleModal()" class="text-amber-600 hover:underline font-bold text-[11px] flex items-center gap-1">
                 <span>View Schedule</span>
                 <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2991,8 +3155,8 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
     hasChanges = true;
   }
 
-  // 3. Share Schedule
-  if (cloudConfig.shareSchedule && Array.isArray(cloudConfig.shareSchedule) && cloudConfig.shareSchedule.length > 0) {
+  // 3. Share Schedule (Live Google Sheet is primary; static cloudConfig fallback)
+  if (!state.shareScheduleFromSheet && cloudConfig.shareSchedule && Array.isArray(cloudConfig.shareSchedule) && cloudConfig.shareSchedule.length > 0) {
     state.shareSchedule = cloudConfig.shareSchedule;
     localStorage.setItem(CONFIG.STORAGE_KEY_SCHEDULE, JSON.stringify(state.shareSchedule));
     hasChanges = true;
@@ -3393,6 +3557,14 @@ async function fetchLiveData(isManual = false) {
       }
     }
 
+    // Fallback: If Summary sheet was not returned, attempt schedule parse from combined rows
+    if (!state.shareScheduleFromSheet && result && result.data && Array.isArray(result.data)) {
+      const altSchedule = parseShareScheduleFromSheetData(result.data);
+      if (altSchedule && altSchedule.length > 0) {
+        applyShareScheduleFromSheet(altSchedule);
+      }
+    }
+
     // Recalculate dynamic real-time Liquid Bank Balance
     recalculateLiquidBalance();
 
@@ -3554,6 +3726,12 @@ function processDebitedSheetData(rows) {
 // Process exact Summary Sheet (gid 1874744243) for live Liquid Bank Balance ("Rest of Amount")
 function processSummarySheetData(rows) {
   if (!rows || rows.length <= 1) return;
+
+  // Live Parse Financial Year Share & Extra Schedule from Summary sheet (rows 15-26)
+  const sheetSchedule = parseShareScheduleFromSheetData(rows);
+  if (sheetSchedule && sheetSchedule.length > 0) {
+    applyShareScheduleFromSheet(sheetSchedule);
+  }
 
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
@@ -5525,6 +5703,7 @@ window.closeShareScheduleModal = closeShareScheduleModal;
 window.renderShareScheduleModalContent = renderShareScheduleModalContent;
 window.handleSaveShareSchedule = handleSaveShareSchedule;
 window.resetShareScheduleToDefault = resetShareScheduleToDefault;
+window.refreshShareScheduleFromSheet = refreshShareScheduleFromSheet;
 window.setAdminSubView = setAdminSubView;
 window.openAdminMyProfile = openAdminMyProfile;
 window.setBankLedgerView = setBankLedgerView;

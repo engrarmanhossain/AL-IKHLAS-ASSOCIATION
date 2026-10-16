@@ -1555,13 +1555,24 @@
             <i class="fa-solid fa-calendar-days"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Financial Year Share &amp; Extra Schedule</h3>
-            <p class="text-xs text-slate-500">11-Year Official Association Capital Roadmap (2025–2036)</p>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Financial Year Share &amp; Extra Schedule</h3>
+              <span id="share-schedule-sync-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Synced</span>
+              </span>
+            </div>
+            <p class="text-xs text-slate-500" id="share-schedule-sync-subtitle">11-Year Capital Roadmap • Real-time from Google Sheet (Summary)</p>
           </div>
         </div>
-        <button type="button" onclick="closeShareScheduleModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition" title="Close">
-          <i class="fa-solid fa-xmark text-sm"></i>
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="refreshShareScheduleFromSheet()" id="btn-refresh-schedule-modal" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition" title="Sync live from Google Spreadsheet">
+            <i class="fa-solid fa-rotate text-sm"></i>
+          </button>
+          <button type="button" onclick="closeShareScheduleModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition" title="Close">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Scrollable Schedule Container -->

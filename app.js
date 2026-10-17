@@ -551,10 +551,17 @@ function showView(viewName) {
   const dashboardView = document.getElementById('view-dashboard');
   if (!loginView || !dashboardView) return;
 
+  // Security enforcement: Accessing dashboard strictly requires an active authenticated session
+  if (viewName === 'dashboard' && !state.currentUser) {
+    viewName = 'login';
+  }
+
   if (viewName === 'login') {
     loginView.classList.remove('hidden');
     dashboardView.classList.add('hidden');
     document.getElementById('login-error')?.classList.add('hidden');
+    const pwdInput = document.getElementById('login-password');
+    if (pwdInput) pwdInput.value = '';
   } else {
     loginView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
@@ -1383,35 +1390,13 @@ function initUsersAndAuth() {
     localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   }
 
-  // Check current session: If no session, Login Page IS THE OPENING PAGE
-  const storedAuth = localStorage.getItem(CONFIG.STORAGE_KEY_AUTH);
-  if (storedAuth) {
-    try {
-      state.currentUser = JSON.parse(storedAuth);
-      const matched = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
-      if (matched) {
-        state.currentUser.sheetName = matched.sheetName || state.currentUser.name;
-        state.currentUser.avatar = matched.avatar || null;
-        state.currentUser.nid = matched.nid || '';
-        state.currentUser.nomineeName = matched.nomineeName || '';
-        state.currentUser.nomineeNid = matched.nomineeNid || '';
-        state.currentUser.nomineeRelation = matched.nomineeRelation || '';
-        state.currentUser.membershipFrom = matched.membershipFrom || '2025-2026';
-        state.currentUser.membershipTo = matched.membershipTo || '2035-2036';
-        state.currentUser.assignedShares = matched.assignedShares || 15;
-      }
-      showView('dashboard');
-      if (!isAdmin()) {
-        switchTab('members');
-      }
-    } catch (e) {
-      state.currentUser = null;
-      showView('login');
-    }
-  } else {
-    state.currentUser = null;
-    showView('login'); // Opening page is LOGIN!
-  }
+  // Requirement: Every visiting time, login is strictly required.
+  // Never restore previous login session automatically from persistent storage.
+  state.currentUser = null;
+  localStorage.removeItem(CONFIG.STORAGE_KEY_AUTH);
+  try { sessionStorage.removeItem(CONFIG.STORAGE_KEY_AUTH); } catch (e) {}
+
+  showView('login'); // Login portal is ALWAYS the opening page on every visit!
 
   renderAuthHeader();
   updateDashboardForRole();
@@ -1669,7 +1654,9 @@ function handleLoginSubmit(e) {
     if (!state.currentUser.sheetName) {
       state.currentUser.sheetName = user.sheetName || user.name;
     }
-    localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(user));
+    // Do not persist auth in localStorage so every new visit strictly requires login
+    localStorage.removeItem(CONFIG.STORAGE_KEY_AUTH);
+    try { sessionStorage.removeItem(CONFIG.STORAGE_KEY_AUTH); } catch (e) {}
     showView('dashboard');
     updateDashboardForRole();
     if (!isAdmin()) {
@@ -1690,6 +1677,13 @@ function handleLoginSubmit(e) {
 function handleLogout() {
   state.currentUser = null;
   localStorage.removeItem(CONFIG.STORAGE_KEY_AUTH);
+  try { sessionStorage.removeItem(CONFIG.STORAGE_KEY_AUTH); } catch (e) {}
+  const emailInput = document.getElementById('login-email');
+  const passInput = document.getElementById('login-password');
+  if (emailInput) emailInput.value = '';
+  if (passInput) passInput.value = '';
+  const errorEl = document.getElementById('login-error');
+  if (errorEl) errorEl.classList.add('hidden');
   showView('login');
   renderAuthHeader();
   showToast('Logged out. Please sign in to continue.', 'info');
@@ -2236,7 +2230,6 @@ function handleMemberProfileSubmit(e) {
 
   // Persist to storage
   localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
-  localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
 
   // Re-render UI
   renderAuthHeader();
@@ -2540,7 +2533,6 @@ function handleUserSubmit(e) {
         state.currentUser.membershipFrom = u.membershipFrom;
         state.currentUser.membershipTo = u.membershipTo;
         state.currentUser.assignedShares = u.assignedShares;
-        localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
       }
     }
   } else {
@@ -3190,7 +3182,6 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
       const me = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
       if (me) {
         Object.assign(state.currentUser, me);
-        localStorage.setItem(CONFIG.STORAGE_KEY_AUTH, JSON.stringify(state.currentUser));
       }
     }
 

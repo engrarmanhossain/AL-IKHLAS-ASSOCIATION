@@ -597,8 +597,8 @@ function renderUserAvatar(user, sizeClass = 'w-8 h-8 rounded-xl', textClass = 't
   return `<div class="${sizeClass} flex items-center justify-center text-white font-extrabold ${textClass} shrink-0 shadow-sm" style="background-color: ${bg}">${initials}</div>`;
 }
 
-// Helper: Compress and Square-Crop Uploaded Image via HTML5 Canvas
-function compressImage(file, maxSize = 256, quality = 0.85) {
+// Helper: Compress and Square-Crop Uploaded Image via HTML5 Canvas (Optimized for Fast Cloud Sync)
+function compressImage(file, maxSize = 180, quality = 0.78) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -1367,11 +1367,14 @@ function initUsersAndAuth() {
       state.users = JSON.parse(storedUsers);
       // Ensure all users have sheetName, avatar, nid, nominee, membershipFrom, membershipTo, assignedShares
       state.users.forEach(u => {
-        const def = DEFAULT_USERS.find(d => d.id === u.id || d.email.toLowerCase() === u.email.toLowerCase());
+        const def = DEFAULT_USERS.find(d => d.id === u.id || (d.email && u.email && d.email.toLowerCase() === u.email.toLowerCase()));
         if (!u.sheetName) {
           u.sheetName = def ? def.sheetName : u.name;
         }
-        if (typeof u.avatar === 'undefined') u.avatar = def ? def.avatar : null;
+        if (typeof u.avatar === 'undefined' || !u.avatar) {
+          const storedAvatar = u.id ? localStorage.getItem('al_ikhlas_avatar_' + u.id) : null;
+          u.avatar = storedAvatar || (def ? def.avatar : null);
+        }
         if (typeof u.nid === 'undefined' || !u.nid) u.nid = def ? def.nid : '';
         if (typeof u.nomineeName === 'undefined' || !u.nomineeName) u.nomineeName = def ? def.nomineeName : '';
         if (typeof u.nomineeNid === 'undefined' || !u.nomineeNid) u.nomineeNid = def ? def.nomineeNid : '';
@@ -1382,11 +1385,11 @@ function initUsersAndAuth() {
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     } catch (e) {
-      state.users = [...DEFAULT_USERS];
+      state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     }
   } else {
-    state.users = [...DEFAULT_USERS];
+    state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
     localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   }
 
@@ -2117,7 +2120,7 @@ function openMemberProfileModal() {
     sharesDisplay.textContent = `${state.currentUser.assignedShares || 15} Shares`;
   }
 
-  tempProfileAvatar = state.currentUser.avatar || null;
+  tempProfileAvatar = state.currentUser.avatar || (state.currentUser.id ? localStorage.getItem('al_ikhlas_avatar_' + state.currentUser.id) : null) || null;
   updateModalAvatarPreview();
 
   if (modal) {
@@ -2161,7 +2164,7 @@ async function handleProfilePhotoSelected(e) {
 
   try {
     showToast('Processing photo...', 'info');
-    const compressed = await compressImage(file, 256, 0.85);
+    const compressed = await compressImage(file, 180, 0.78);
     tempProfileAvatar = compressed;
     updateModalAvatarPreview();
     showToast('Photo uploaded! Click "Save Changes" to apply.', 'success');
@@ -2203,6 +2206,9 @@ function handleMemberProfileSubmit(e) {
     return;
   }
 
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
   // Update in state.currentUser (Password remains unchanged!)
   state.currentUser.name = newName;
   state.currentUser.phone = newPhone;
@@ -2210,12 +2216,24 @@ function handleMemberProfileSubmit(e) {
   state.currentUser.nomineeName = newNomineeName;
   state.currentUser.nomineeRelation = newNomineeRelation;
   state.currentUser.nomineeNid = newNomineeNid;
+  state.currentUser.updatedAt = nowIso;
+  state.currentUser.localUpdatedAt = now;
+
+  let avatarUpdated = false;
   if (tempProfileAvatar !== null) {
     state.currentUser.avatar = tempProfileAvatar ? tempProfileAvatar : null;
+    avatarUpdated = true;
+    if (state.currentUser.id) {
+      if (tempProfileAvatar) {
+        localStorage.setItem('al_ikhlas_avatar_' + state.currentUser.id, tempProfileAvatar);
+      } else {
+        localStorage.removeItem('al_ikhlas_avatar_' + state.currentUser.id);
+      }
+    }
   }
 
   // Update matching user in state.users list
-  const userIdx = state.users.findIndex(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
+  const userIdx = state.users.findIndex(u => (u.id && u.id === state.currentUser.id) || (u.email && state.currentUser.email && u.email.toLowerCase() === state.currentUser.email.toLowerCase()));
   if (userIdx !== -1) {
     state.users[userIdx].name = newName;
     state.users[userIdx].phone = newPhone;
@@ -2223,15 +2241,20 @@ function handleMemberProfileSubmit(e) {
     state.users[userIdx].nomineeName = newNomineeName;
     state.users[userIdx].nomineeRelation = newNomineeRelation;
     state.users[userIdx].nomineeNid = newNomineeNid;
+    state.users[userIdx].updatedAt = nowIso;
+    state.users[userIdx].localUpdatedAt = now;
     if (tempProfileAvatar !== null) {
       state.users[userIdx].avatar = tempProfileAvatar ? tempProfileAvatar : null;
     }
   }
 
+  state.lastLocalProfileUpdate = now;
+  localStorage.setItem('al_ikhlas_last_user_update', now.toString());
+
   // Persist to storage
   localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
 
-  // Re-render UI
+  // Re-render UI immediately
   renderAuthHeader();
   if (isAdmin()) {
     renderMembersGrid();
@@ -2241,8 +2264,11 @@ function handleMemberProfileSubmit(e) {
   }
   closeMemberProfileModal();
 
-  showToast('Profile and photo saved! Syncing across all devices...', 'success');
+  showToast('Profile and photo saved permanently! Broadcasting to Google Cloud...', 'success');
   syncConfigToCloud('users', state.users);
+  if (avatarUpdated && tempProfileAvatar && state.currentUser.id) {
+    syncConfigToCloud('avatar_' + state.currentUser.id, tempProfileAvatar);
+  }
 }
 
 function printMemberStatement() {
@@ -2381,7 +2407,7 @@ async function handleAdminUserPhotoSelected(e) {
 
   try {
     showToast('Processing photo...', 'info');
-    const compressed = await compressImage(file, 256, 0.85);
+    const compressed = await compressImage(file, 180, 0.78);
     tempAdminUserAvatar = compressed;
     updateAdminUserAvatarPreview();
     showToast('Photo uploaded! Save changes to apply.', 'success');
@@ -2500,6 +2526,11 @@ function handleUserSubmit(e) {
   const membershipTo = document.getElementById('form-user-membership-to')?.value || '2035-2036';
   const assignedShares = parseInt(document.getElementById('form-user-shares')?.value || '15', 10);
 
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  let avatarUpdatedId = null;
+  let avatarUpdatedVal = null;
+
   if (id) {
     // Update existing
     const u = state.users.find(x => x.id === id);
@@ -2515,30 +2546,30 @@ function handleUserSubmit(e) {
       u.membershipFrom = membershipFrom;
       u.membershipTo = membershipTo;
       u.assignedShares = assignedShares;
+      u.updatedAt = nowIso;
+      u.localUpdatedAt = now;
       if (tempAdminUserAvatar !== null) {
         u.avatar = tempAdminUserAvatar ? tempAdminUserAvatar : null;
+        avatarUpdatedId = u.id;
+        avatarUpdatedVal = tempAdminUserAvatar;
+        if (tempAdminUserAvatar) {
+          localStorage.setItem('al_ikhlas_avatar_' + u.id, tempAdminUserAvatar);
+        } else {
+          localStorage.removeItem('al_ikhlas_avatar_' + u.id);
+        }
       }
       if (pass) u.password = pass;
 
       // Sync state.currentUser if currently logged in user was edited
-      if (state.currentUser && (state.currentUser.id === u.id || state.currentUser.email.toLowerCase() === u.email.toLowerCase())) {
-        state.currentUser.name = u.name;
-        state.currentUser.phone = u.phone;
-        state.currentUser.role = u.role;
-        state.currentUser.avatar = u.avatar;
-        state.currentUser.nid = u.nid;
-        state.currentUser.nomineeName = u.nomineeName;
-        state.currentUser.nomineeRelation = u.nomineeRelation;
-        state.currentUser.nomineeNid = u.nomineeNid;
-        state.currentUser.membershipFrom = u.membershipFrom;
-        state.currentUser.membershipTo = u.membershipTo;
-        state.currentUser.assignedShares = u.assignedShares;
+      if (state.currentUser && (state.currentUser.id === u.id || (state.currentUser.email && state.currentUser.email.toLowerCase() === u.email.toLowerCase()))) {
+        Object.assign(state.currentUser, u);
       }
     }
   } else {
     // Add new user
-    state.users.push({
-      id: 'u_' + Date.now(),
+    const newId = 'u_' + Date.now();
+    const newUser = {
+      id: newId,
       name,
       email,
       phone,
@@ -2551,10 +2582,20 @@ function handleUserSubmit(e) {
       nomineeNid,
       membershipFrom,
       membershipTo,
-      assignedShares
-    });
+      assignedShares,
+      updatedAt: nowIso,
+      localUpdatedAt: now
+    };
+    if (tempAdminUserAvatar) {
+      avatarUpdatedId = newId;
+      avatarUpdatedVal = tempAdminUserAvatar;
+      localStorage.setItem('al_ikhlas_avatar_' + newId, tempAdminUserAvatar);
+    }
+    state.users.push(newUser);
   }
 
+  state.lastLocalProfileUpdate = now;
+  localStorage.setItem('al_ikhlas_last_user_update', now.toString());
   localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   renderAdminUsersTable();
   renderMembersGrid();
@@ -2562,6 +2603,9 @@ function handleUserSubmit(e) {
   closeUserModal();
   showToast(`Saved member profile, photo & role for "${name}"! Syncing across all devices...`, 'success');
   syncConfigToCloud('users', state.users);
+  if (avatarUpdatedId && avatarUpdatedVal) {
+    syncConfigToCloud('avatar_' + avatarUpdatedId, avatarUpdatedVal);
+  }
 }
 
 // Payment Status Overrides & Approval Actions
@@ -3154,34 +3198,97 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
     hasChanges = true;
   }
 
-  // 4. User Profiles & Photos
+  // 4. User Profiles & Photos (Robust Timestamp & Local Edit Protection)
   if (cloudConfig.users && Array.isArray(cloudConfig.users) && cloudConfig.users.length > 0) {
+    const now = Date.now();
+    const PROTECT_WINDOW_MS = 5 * 60 * 1000; // 5-minute local edit protection window against stale auto-sync
+
     cloudConfig.users.forEach(cu => {
-      const idx = state.users.findIndex(u => (cu.id && u.id === cu.id) || (cu.email && u.email.toLowerCase() === cu.email.toLowerCase()) || (cu.name && u.name.toLowerCase() === cu.name.toLowerCase()));
+      // Check for standalone individual avatar key in cloudConfig (e.g. avatar_u1)
+      const cloudAvatar = (cu.id && cloudConfig['avatar_' + cu.id]) ? cloudConfig['avatar_' + cu.id] : cu.avatar;
+
+      const idx = state.users.findIndex(u => 
+        (cu.id && u.id === cu.id) || 
+        (cu.email && u.email && u.email.toLowerCase() === cu.email.toLowerCase()) || 
+        (cu.name && u.name && u.name.toLowerCase() === cu.name.toLowerCase())
+      );
+
       if (idx !== -1) {
         const target = state.users[idx];
-        if (typeof cu.avatar !== 'undefined') target.avatar = cu.avatar;
-        if (cu.phone) target.phone = cu.phone;
-        if (cu.nid) target.nid = cu.nid;
-        if (cu.nomineeName) target.nomineeName = cu.nomineeName;
-        if (cu.nomineeNid) target.nomineeNid = cu.nomineeNid;
-        if (cu.nomineeRelation) target.nomineeRelation = cu.nomineeRelation;
-        if (cu.membershipFrom) target.membershipFrom = cu.membershipFrom;
-        if (cu.membershipTo) target.membershipTo = cu.membershipTo;
-        if (typeof cu.assignedShares !== 'undefined') target.assignedShares = cu.assignedShares;
-        if (cu.role) target.role = cu.role;
-        if (cu.password) target.password = cu.password;
-        if (cu.name) target.name = cu.name;
-        if (cu.sheetName) target.sheetName = cu.sheetName;
+
+        // Parse timestamps
+        const localTime = target.localUpdatedAt || (target.updatedAt ? new Date(target.updatedAt).getTime() : 0);
+        const cloudTime = cu.updatedAt ? new Date(cu.updatedAt).getTime() : 0;
+        const isLocallyProtected = localTime > 0 && (now - localTime < PROTECT_WINDOW_MS);
+
+        // If local user has a newer update or is within protection window, do NOT overwrite with older/stale cloud data
+        if (isLocallyProtected || (localTime > 0 && localTime > cloudTime)) {
+          // Keep local user modifications!
+          // Only adopt non-empty cloud fields that local target doesn't already have
+          if (!target.avatar && cloudAvatar) target.avatar = cloudAvatar;
+          if (!target.phone && cu.phone) target.phone = cu.phone;
+          if (!target.nid && cu.nid) target.nid = cu.nid;
+          if ((!target.nomineeName || target.nomineeName === 'Designated Nominee') && cu.nomineeName && cu.nomineeName !== 'Designated Nominee') {
+            target.nomineeName = cu.nomineeName;
+          }
+          if (!target.nomineeNid && cu.nomineeNid) target.nomineeNid = cu.nomineeNid;
+          if (!target.nomineeRelation && cu.nomineeRelation) target.nomineeRelation = cu.nomineeRelation;
+          if (cu.role && !isAdmin()) target.role = cu.role;
+        } else {
+          // Cloud has newer data or no local conflict
+          if (typeof cloudAvatar !== 'undefined' && cloudAvatar !== null && cloudAvatar !== '') {
+            target.avatar = cloudAvatar;
+          } else if (cloudAvatar === null && !target.avatar) {
+            target.avatar = null;
+          }
+          // Note: If cloudAvatar is null but local target has a valid avatar, DO NOT wipe out local avatar with null
+          // unless cloud explicitly updated newer than local.
+
+          if (cu.phone) target.phone = cu.phone;
+          if (cu.nid) target.nid = cu.nid;
+
+          // Only accept cloud nomineeName if not default placeholder or if local is empty
+          if (cu.nomineeName && (cu.nomineeName !== 'Designated Nominee' || !target.nomineeName)) {
+            target.nomineeName = cu.nomineeName;
+          }
+          if (cu.nomineeNid) target.nomineeNid = cu.nomineeNid;
+          if (cu.nomineeRelation) target.nomineeRelation = cu.nomineeRelation;
+
+          if (cu.membershipFrom) target.membershipFrom = cu.membershipFrom;
+          if (cu.membershipTo) target.membershipTo = cu.membershipTo;
+          if (typeof cu.assignedShares !== 'undefined') target.assignedShares = cu.assignedShares;
+          if (cu.role) target.role = cu.role;
+          if (cu.password) target.password = cu.password;
+          if (cu.name) target.name = cu.name;
+          if (cu.sheetName) target.sheetName = cu.sheetName;
+          if (cu.updatedAt) target.updatedAt = cu.updatedAt;
+        }
+
+        // Restore individual persistent avatar from localStorage if still missing
+        if (!target.avatar && target.id) {
+          const storedAvatar = localStorage.getItem('al_ikhlas_avatar_' + target.id);
+          if (storedAvatar) target.avatar = storedAvatar;
+        }
       } else {
+        // New user added in cloud
+        if (cu.id && cloudConfig['avatar_' + cu.id]) cu.avatar = cloudConfig['avatar_' + cu.id];
         state.users.push(cu);
       }
     });
 
+    // Update active currentUser while safeguarding against regression
     if (state.currentUser) {
-      const me = state.users.find(u => u.id === state.currentUser.id || u.email.toLowerCase() === state.currentUser.email.toLowerCase());
+      const me = state.users.find(u => u.id === state.currentUser.id || (u.email && u.email.toLowerCase() === state.currentUser.email.toLowerCase()));
       if (me) {
-        Object.assign(state.currentUser, me);
+        const curLocalTime = state.currentUser.localUpdatedAt || (state.currentUser.updatedAt ? new Date(state.currentUser.updatedAt).getTime() : 0);
+        const meLocalTime = me.localUpdatedAt || (me.updatedAt ? new Date(me.updatedAt).getTime() : 0);
+
+        if (meLocalTime >= curLocalTime) {
+          Object.assign(state.currentUser, me);
+        } else {
+          // Current user was edited even more recently, ensure state.users reflects it
+          Object.assign(me, state.currentUser);
+        }
       }
     }
 

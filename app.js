@@ -222,7 +222,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Spouse',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u2',
@@ -239,7 +239,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Mother',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 2,
   },
   {
     id: 'u3',
@@ -256,7 +256,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Spouse',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u4',
@@ -273,7 +273,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Brother',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 2,
   },
   {
     id: 'u5',
@@ -290,7 +290,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Father',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u6',
@@ -307,7 +307,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Mother',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u7',
@@ -324,7 +324,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Spouse',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u8',
@@ -341,7 +341,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Father',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u9',
@@ -358,7 +358,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Spouse',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   },
   {
     id: 'u10',
@@ -375,7 +375,7 @@ const DEFAULT_USERS = [
     nomineeRelation: 'Brother',
     membershipFrom: '2025-2026',
     membershipTo: '2035-2036',
-    assignedShares: 15,
+    assignedShares: 1,
   }
 ];
 
@@ -383,6 +383,7 @@ const DEFAULT_USERS = [
 let state = {
   currentUser: null,
   users: [],
+  memberNetShares: new Map(),
   statusOverrides: {},
   customTransactions: [],
   rawRows: [],
@@ -1360,6 +1361,14 @@ function initUsersAndAuth() {
   initBankDetails();
   initShareSchedule();
 
+  // Load cached live member Net Shares from Google Sheet if available
+  const cachedNetShares = localStorage.getItem('al_ikhlas_member_net_shares');
+  if (cachedNetShares) {
+    try {
+      state.memberNetShares = new Map(JSON.parse(cachedNetShares));
+    } catch (e) {}
+  }
+
   // Load users from storage or use defaults
   const storedUsers = localStorage.getItem(CONFIG.STORAGE_KEY_USERS);
   if (storedUsers) {
@@ -1381,7 +1390,14 @@ function initUsersAndAuth() {
         if (typeof u.nomineeRelation === 'undefined' || !u.nomineeRelation) u.nomineeRelation = def ? def.nomineeRelation : '';
         if (typeof u.membershipFrom === 'undefined' || !u.membershipFrom) u.membershipFrom = def ? def.membershipFrom : '2025-2026';
         if (typeof u.membershipTo === 'undefined' || !u.membershipTo) u.membershipTo = def ? def.membershipTo : '2035-2036';
-        if (typeof u.assignedShares === 'undefined' || !u.assignedShares) u.assignedShares = def ? def.assignedShares : 15;
+        
+        // Dynamic Net Share from Google Sheet (Subscribed shares)
+        const netFromSheet = state.memberNetShares.get(u.name.toLowerCase().trim()) || (u.sheetName && state.memberNetShares.get(u.sheetName.toLowerCase().trim()));
+        if (typeof netFromSheet !== 'undefined' && netFromSheet !== null) {
+          u.assignedShares = netFromSheet;
+        } else if (typeof u.assignedShares === 'undefined' || !u.assignedShares || u.assignedShares === 15) {
+          u.assignedShares = def ? def.assignedShares : 1;
+        }
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     } catch (e) {
@@ -1390,6 +1406,13 @@ function initUsersAndAuth() {
     }
   } else {
     state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+    // Apply cached net shares if present
+    if (state.memberNetShares && state.memberNetShares.size > 0) {
+      state.users.forEach(u => {
+        const net = state.memberNetShares.get(u.name.toLowerCase().trim()) || (u.sheetName && state.memberNetShares.get(u.sheetName.toLowerCase().trim()));
+        if (typeof net !== 'undefined' && net !== null) u.assignedShares = net;
+      });
+    }
     localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
   }
 
@@ -1902,7 +1925,7 @@ function renderMemberPersonalView() {
             </div>
             <div class="mt-2 text-xs text-slate-500 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
               <span>Subscribed Capital:</span>
-              <strong class="text-brand-700 dark:text-brand-400 font-extrabold">${state.currentUser.assignedShares || 15} Subscribed Shares</strong>
+              <strong class="text-brand-700 dark:text-brand-400 font-extrabold">${(state.memberNetShares.get(state.currentUser.name.toLowerCase().trim()) || (state.currentUser.sheetName && state.memberNetShares.get(state.currentUser.sheetName.toLowerCase().trim())) || state.currentUser.assignedShares || 1)} Subscribed Shares</strong>
             </div>
           </div>
         </div>
@@ -2117,7 +2140,8 @@ function openMemberProfileModal() {
     tenureDisplay.textContent = `${state.currentUser.membershipFrom || '2025-2026'} → ${state.currentUser.membershipTo || '2035-2036'}`;
   }
   if (sharesDisplay) {
-    sharesDisplay.textContent = `${state.currentUser.assignedShares || 15} Shares`;
+    const curNet = state.memberNetShares.get(state.currentUser.name.toLowerCase().trim()) || (state.currentUser.sheetName && state.memberNetShares.get(state.currentUser.sheetName.toLowerCase().trim()));
+    sharesDisplay.textContent = `${curNet || state.currentUser.assignedShares || 1} Shares`;
   }
 
   tempProfileAvatar = state.currentUser.avatar || (state.currentUser.id ? localStorage.getItem('al_ikhlas_avatar_' + state.currentUser.id) : null) || null;
@@ -2343,7 +2367,7 @@ function renderAdminUsersTable() {
           <span>${u.membershipFrom || '2025-2026'} - ${u.membershipTo || '2035-2036'}</span>
         </div>
         <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-          ${u.assignedShares || 15} Shares Subscribed
+          ${(state.memberNetShares.get(u.name.toLowerCase().trim()) || (u.sheetName && state.memberNetShares.get(u.sheetName.toLowerCase().trim())) || u.assignedShares || 1)} Shares Subscribed
         </div>
       </td>
       <td class="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300">
@@ -2459,7 +2483,8 @@ function openAddUserModal(userId = null) {
       document.getElementById('form-user-nominee-nid').value = user.nomineeNid || '';
       if (mFromEl) mFromEl.value = user.membershipFrom || '2025-2026';
       if (mToEl) mToEl.value = user.membershipTo || '2035-2036';
-      if (sharesEl) sharesEl.value = user.assignedShares || 15;
+      const uNet = state.memberNetShares.get(user.name.toLowerCase().trim()) || (user.sheetName && state.memberNetShares.get(user.sheetName.toLowerCase().trim()));
+      if (sharesEl) sharesEl.value = uNet || user.assignedShares || 1;
       tempAdminUserAvatar = user.avatar || null;
     }
   } else {
@@ -2471,7 +2496,7 @@ function openAddUserModal(userId = null) {
     document.getElementById('form-user-nominee-nid').value = '';
     if (mFromEl) mFromEl.value = '2025-2026';
     if (mToEl) mToEl.value = '2035-2036';
-    if (sharesEl) sharesEl.value = 15;
+    if (sharesEl) sharesEl.value = 1;
     tempAdminUserAvatar = null;
   }
 
@@ -3256,12 +3281,24 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
 
           if (cu.membershipFrom) target.membershipFrom = cu.membershipFrom;
           if (cu.membershipTo) target.membershipTo = cu.membershipTo;
-          if (typeof cu.assignedShares !== 'undefined') target.assignedShares = cu.assignedShares;
+          // Dynamic Net Share from Google Sheet is primary for Subscribed shares
+          const liveNet = state.memberNetShares.get(target.name.toLowerCase().trim()) || (target.sheetName && state.memberNetShares.get(target.sheetName.toLowerCase().trim()));
+          if (typeof liveNet !== 'undefined' && liveNet !== null) {
+            target.assignedShares = liveNet;
+          } else if (typeof cu.assignedShares !== 'undefined' && cu.assignedShares !== 15) {
+            target.assignedShares = cu.assignedShares;
+          }
           if (cu.role) target.role = cu.role;
           if (cu.password) target.password = cu.password;
           if (cu.name) target.name = cu.name;
           if (cu.sheetName) target.sheetName = cu.sheetName;
           if (cu.updatedAt) target.updatedAt = cu.updatedAt;
+        }
+
+        // Always guarantee Net Share from live Google Sheet takes precedence for Subscribed shares
+        const enforcedNet = state.memberNetShares.get(target.name.toLowerCase().trim()) || (target.sheetName && state.memberNetShares.get(target.sheetName.toLowerCase().trim()));
+        if (typeof enforcedNet !== 'undefined' && enforcedNet !== null) {
+          target.assignedShares = enforcedNet;
         }
 
         // Restore individual persistent avatar from localStorage if still missing
@@ -3288,6 +3325,11 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
         } else {
           // Current user was edited even more recently, ensure state.users reflects it
           Object.assign(me, state.currentUser);
+        }
+        // Always guarantee Net Share from live Google Sheet takes precedence for currentUser
+        const liveCurNet = state.memberNetShares.get(state.currentUser.name.toLowerCase().trim()) || (state.currentUser.sheetName && state.memberNetShares.get(state.currentUser.sheetName.toLowerCase().trim()));
+        if (typeof liveCurNet !== 'undefined' && liveCurNet !== null) {
+          state.currentUser.assignedShares = liveCurNet;
         }
       }
     }
@@ -3655,12 +3697,15 @@ async function fetchLiveData(isManual = false) {
       }
     }
 
-    // Fallback: If Summary sheet was not returned, attempt schedule parse from combined rows
+    // Fallback: If Summary sheet was not returned, attempt schedule and net shares parse from combined rows
     if (!state.shareScheduleFromSheet && result && result.data && Array.isArray(result.data)) {
       const altSchedule = parseShareScheduleFromSheetData(result.data);
       if (altSchedule && altSchedule.length > 0) {
         applyShareScheduleFromSheet(altSchedule);
       }
+    }
+    if ((!state.memberNetShares || state.memberNetShares.size === 0) && result && result.data && Array.isArray(result.data)) {
+      applyMemberNetSharesFromSummarySheet(result.data);
     }
 
     // Recalculate dynamic real-time Liquid Bank Balance
@@ -3821,9 +3866,132 @@ function processDebitedSheetData(rows) {
   }
 }
 
+// Parse and Synchronize Member Net Share (Subscribed Shares) directly from Google Sheet (Summary Tab)
+function applyMemberNetSharesFromSummarySheet(rows) {
+  if (!rows || !Array.isArray(rows) || rows.length <= 1) return;
+  const netSharesMap = new Map();
+
+  // 1. Scan Table 1 (left side columns A-E)
+  let nameCol = -1;
+  let netShareCol = -1;
+  let startRow = -1;
+
+  for (let r = 0; r < Math.min(rows.length, 5); r++) {
+    const row = rows[r];
+    if (!row) continue;
+    for (let c = 0; c < Math.min(row.length, 6); c++) {
+      const h = (row[c] || '').toString().trim().toLowerCase();
+      if ((h === 'name' || h === 'member name' || h.includes('member')) && nameCol === -1) nameCol = c;
+      if (h.includes('net share') && netShareCol === -1) netShareCol = c;
+    }
+    if (nameCol !== -1 && netShareCol !== -1) {
+      startRow = r + 1;
+      break;
+    }
+  }
+
+  if (nameCol !== -1 && netShareCol !== -1) {
+    for (let r = startRow; r < rows.length; r++) {
+      const row = rows[r];
+      if (!row) continue;
+      const rawName = (row[nameCol] || '').toString().trim();
+      if (!rawName || rawName.toUpperCase() === 'TOTAL') break;
+      const shareVal = parseInt(row[netShareCol], 10);
+      if (!isNaN(shareVal) && shareVal > 0) {
+        netSharesMap.set(rawName.toLowerCase(), shareVal);
+      }
+    }
+  }
+
+  // 2. Also scan Table 2 (columns K-O, index 10-14) as backup or extra verification
+  let t2NameCol = -1, t2NetCol = -1, t2Start = -1;
+  for (let r = 0; r < Math.min(rows.length, 5); r++) {
+    const row = rows[r];
+    if (!row) continue;
+    for (let c = 5; c < row.length; c++) {
+      const h = (row[c] || '').toString().trim().toLowerCase();
+      if (h.includes('member name')) t2NameCol = c;
+      if (h.includes('net share')) t2NetCol = c;
+    }
+    if (t2NameCol !== -1 && t2NetCol !== -1) {
+      t2Start = r + 1;
+      break;
+    }
+  }
+
+  if (t2NameCol !== -1 && t2NetCol !== -1) {
+    for (let r = t2Start; r < rows.length; r++) {
+      const row = rows[r];
+      if (!row) continue;
+      const rawName = (row[t2NameCol] || '').toString().trim();
+      if (!rawName || rawName.toUpperCase() === 'TOTAL') continue;
+      const shareVal = parseInt(row[t2NetCol], 10);
+      if (!isNaN(shareVal) && shareVal > 0 && !netSharesMap.has(rawName.toLowerCase())) {
+        netSharesMap.set(rawName.toLowerCase(), shareVal);
+      }
+    }
+  }
+
+  if (netSharesMap.size === 0) return;
+
+  state.memberNetShares = netSharesMap;
+  try {
+    localStorage.setItem('al_ikhlas_member_net_shares', JSON.stringify(Array.from(netSharesMap.entries())));
+  } catch (e) {}
+
+  let changed = false;
+
+  // Apply to state.users
+  state.users.forEach(u => {
+    const key = u.name ? u.name.toLowerCase().trim() : '';
+    const sheetKey = u.sheetName ? u.sheetName.toLowerCase().trim() : '';
+    const net = netSharesMap.get(key) || (sheetKey ? netSharesMap.get(sheetKey) : null);
+    if (typeof net !== 'undefined' && net !== null && u.assignedShares !== net) {
+      u.assignedShares = net;
+      changed = true;
+    }
+  });
+
+  // Apply to state.currentUser
+  if (state.currentUser) {
+    const curKey = state.currentUser.name ? state.currentUser.name.toLowerCase().trim() : '';
+    const curSheetKey = state.currentUser.sheetName ? state.currentUser.sheetName.toLowerCase().trim() : '';
+    const meNet = netSharesMap.get(curKey) || (curSheetKey ? netSharesMap.get(curSheetKey) : null);
+    if (typeof meNet !== 'undefined' && meNet !== null && state.currentUser.assignedShares !== meNet) {
+      state.currentUser.assignedShares = meNet;
+      changed = true;
+    }
+  }
+
+  // Apply to state.membersMap
+  if (state.membersMap) {
+    for (const [name, m] of state.membersMap.entries()) {
+      const mKey = name.toLowerCase().trim();
+      const mNet = netSharesMap.get(mKey);
+      if (typeof mNet !== 'undefined' && mNet !== null) {
+        m.subscribedShares = mNet;
+        m.netShares = mNet;
+      }
+    }
+  }
+
+  if (changed) {
+    localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
+    renderMembersGrid();
+    renderAdminUsersTable();
+    renderAuthHeader();
+    if (!isAdmin() || state.adminSubView === 'profile') {
+      renderMemberPersonalView();
+    }
+  }
+}
+
 // Process exact Summary Sheet (gid 1874744243) for live Liquid Bank Balance ("Rest of Amount")
 function processSummarySheetData(rows) {
   if (!rows || rows.length <= 1) return;
+
+  // Live Parse and Synchronize Net Share (Subscribed Shares) directly from Google Sheet
+  applyMemberNetSharesFromSummarySheet(rows);
 
   // Live Parse Financial Year Share & Extra Schedule from Summary sheet (rows 15-26)
   const sheetSchedule = parseShareScheduleFromSheetData(rows);
@@ -5153,7 +5321,8 @@ function renderMembersGrid() {
     const userNominee = assignedUser ? assignedUser.nomineeName : '';
     const userNomineeRel = assignedUser ? assignedUser.nomineeRelation : '';
     const userTenure = `${assignedUser?.membershipFrom || '2025-2026'} → ${assignedUser?.membershipTo || '2035-2036'}`;
-    const userShares = assignedUser?.assignedShares || 15;
+    const sheetNet = state.memberNetShares.get(m.name.toLowerCase().trim()) || (assignedUser && state.memberNetShares.get(assignedUser.name.toLowerCase().trim())) || (m.netShares || m.subscribedShares);
+    const userShares = sheetNet || assignedUser?.assignedShares || 1;
 
     card.innerHTML = `
       <div>
@@ -5291,7 +5460,8 @@ function openMemberStatement(memberName) {
     tenureEl.textContent = `${fromYear} to ${toYear}`;
   }
   if (subscribedSharesEl) {
-    const sh = assignedUser && assignedUser.assignedShares ? assignedUser.assignedShares : 15;
+    const sheetNet = state.memberNetShares.get(member.name.toLowerCase().trim()) || (assignedUser && state.memberNetShares.get(assignedUser.name.toLowerCase().trim())) || (member.netShares || member.subscribedShares);
+    const sh = sheetNet || (assignedUser && assignedUser.assignedShares ? assignedUser.assignedShares : 1);
     subscribedSharesEl.textContent = `${sh} Shares`;
   }
 

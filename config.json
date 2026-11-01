@@ -46,7 +46,7 @@
       "nomineeRelation": "Spouse",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u2",
@@ -63,7 +63,7 @@
       "nomineeRelation": "Mother",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 2
     },
     {
       "id": "u3",
@@ -80,7 +80,7 @@
       "nomineeRelation": "Spouse",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u4",
@@ -97,7 +97,7 @@
       "nomineeRelation": "Father",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 2
     },
     {
       "id": "u5",
@@ -114,7 +114,7 @@
       "nomineeRelation": "Father",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u6",
@@ -131,7 +131,7 @@
       "nomineeRelation": "Mother",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u7",
@@ -148,7 +148,7 @@
       "nomineeRelation": "Spouse",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u8",
@@ -165,7 +165,7 @@
       "nomineeRelation": "Father",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u9",
@@ -182,7 +182,7 @@
       "nomineeRelation": "Spouse",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     },
     {
       "id": "u10",
@@ -199,7 +199,7 @@
       "nomineeRelation": "Brother",
       "membershipFrom": "2025-2026",
       "membershipTo": "2035-2036",
-      "assignedShares": 15
+      "assignedShares": 1
     }
   ]
 }

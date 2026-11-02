@@ -5671,12 +5671,38 @@ function openMemberStatement(memberName) {
   }
   if (!member) return;
 
-  // Match user record for NID & Nominee info
+  // Match user record for Photo, NID, Nominee & Role info
   const memberNameClean = (member.name || '').toLowerCase().trim();
   const assignedUser = state.users.find(u => 
     ((u.sheetName || '').toLowerCase().trim() === memberNameClean) ||
-    ((u.name || '').toLowerCase().trim() === memberNameClean)
+    ((u.name || '').toLowerCase().trim() === memberNameClean) ||
+    ((u.sheetName || '').toLowerCase().trim().replace(/\s+/g, '') === memberNameClean.replace(/\s+/g, '')) ||
+    ((u.name || '').toLowerCase().trim().replace(/\s+/g, '') === memberNameClean.replace(/\s+/g, ''))
   );
+
+  // Render Member Avatar / Own Picture
+  const avatarContainer = document.getElementById('modal-member-avatar-container');
+  if (avatarContainer) {
+    let userAvatar = (assignedUser && assignedUser.avatar) || (assignedUser && assignedUser.id ? localStorage.getItem('al_ikhlas_avatar_' + assignedUser.id) : null);
+    const userForAvatar = assignedUser 
+      ? Object.assign({}, assignedUser, { avatar: userAvatar || assignedUser.avatar }) 
+      : { name: member.name };
+    avatarContainer.innerHTML = renderUserAvatar(userForAvatar, 'avatar-3d w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-emerald-500/40 shadow-md', 'text-sm sm:text-base');
+  }
+
+  // Render Member Role Badge
+  const roleBadgeEl = document.getElementById('modal-member-role-badge');
+  if (roleBadgeEl) {
+    const role = (assignedUser && assignedUser.role) ? assignedUser.role : 'Member';
+    roleBadgeEl.textContent = role;
+    if (role === 'President') {
+      roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800';
+    } else if (role === 'Cashier' || role === 'Accountant' || role === 'Secretary') {
+      roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800';
+    } else {
+      roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
+    }
+  }
 
   document.getElementById('modal-member-name').textContent = member.name;
   document.getElementById('modal-member-id').textContent = member.id || 'N/A';
@@ -5762,6 +5788,8 @@ function openMemberStatement(memberName) {
   const modal = document.getElementById('modal-statement');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+  const scrollBody = modal.querySelector('.modal-statement-scroll-body');
+  if (scrollBody) scrollBody.scrollTop = 0;
 }
 
 function closeStatementModal() {

@@ -101,6 +101,8 @@ body {
   body {
     background: white !important;
     color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   .no-print,
@@ -115,6 +117,22 @@ body {
 
   .print-only {
     display: block !important;
+  }
+
+  #modal-statement {
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .modal-statement-scroll-body {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
   }
 
   .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl {
@@ -136,8 +154,13 @@ body {
   .modal-content-statement {
     position: static !important;
     width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
     box-shadow: none !important;
+    border: none !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
 }
 

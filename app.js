@@ -1707,11 +1707,9 @@ function handleLoginEmailInput() {
   if (!emailInput) return;
   const val = emailInput.value.trim().toLowerCase();
   const preview = document.getElementById('login-member-preview');
-  const centerLogo = document.getElementById('login-center-logo');
 
   if (!val) {
     if (preview) preview.classList.add('hidden');
-    applyAssociationLogo();
     return;
   }
 
@@ -1743,13 +1741,8 @@ function handleLoginEmailInput() {
 
       preview.classList.remove('hidden');
     }
-
-    if (centerLogo) {
-      centerLogo.innerHTML = renderUserAvatar(userWithAvatar, 'w-full h-full rounded-3xl object-cover', 'text-2xl font-black');
-    }
   } else {
     if (preview) preview.classList.add('hidden');
-    applyAssociationLogo();
   }
 }
 

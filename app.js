@@ -1786,7 +1786,7 @@ function renderMemberPersonalView() {
 
   container.innerHTML = `
     <!-- 1. PERSONAL PROFILE HEADER CARD -->
-    <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden">
+    <div class="card-3d card-3d-emerald bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden">
       <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-brand-600 via-emerald-500 to-gold-500"></div>
       
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-2">
@@ -1996,56 +1996,56 @@ function renderMemberPersonalView() {
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       
       <!-- Card 1: Regular Share Capital -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition-all">
-        <div class="absolute -right-3 -top-3 w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+      <div class="card-3d card-3d-emerald bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden group">
+        <div class="card-3d-icon absolute -right-3 -top-3 w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
           <i class="fa-solid fa-layer-group text-xl opacity-70"></i>
         </div>
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">My Regular Capital (Credit)</p>
         <div class="flex items-baseline gap-1 mt-2">
           <span class="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">${formatCurrency(memberData.regularAmount)}</span>
         </div>
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div class="card-3d-tray mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span><strong>${memberData.totalShares} Shares</strong> (@ ৳2,000)</span>
           <span>${memberData.regularCount} Slips</span>
         </div>
       </div>
 
       <!-- Card 2: Extra Deposits -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-purple-200 dark:border-purple-900/60 shadow-sm relative overflow-hidden group hover:border-purple-500 transition-all">
-        <div class="absolute -right-3 -top-3 w-14 h-14 bg-purple-50 dark:bg-purple-950/40 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400">
+      <div class="card-3d card-3d-purple bg-white dark:bg-slate-900 rounded-2xl p-5 border border-purple-200 dark:border-purple-900/60 relative overflow-hidden group">
+        <div class="card-3d-icon absolute -right-3 -top-3 w-14 h-14 bg-purple-50 dark:bg-purple-950/40 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400">
           <i class="fa-solid fa-coins text-xl opacity-70"></i>
         </div>
         <div class="flex items-center justify-between">
           <p class="text-xs font-semibold uppercase tracking-wider text-purple-800 dark:text-purple-300">My Extra Deposits (Credit)</p>
-          <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus Credit</span>
+          <span class="badge-3d px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Surplus Credit</span>
         </div>
         <div class="flex items-baseline gap-1 mt-2">
           <span class="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300">${formatCurrency(memberData.extraAmount)}</span>
         </div>
-        <div class="mt-3 flex items-center justify-between text-xs text-purple-700 dark:text-purple-300 pt-2 border-t border-purple-100 dark:border-purple-900/40">
+        <div class="card-3d-tray mt-3 flex items-center justify-between text-xs text-purple-700 dark:text-purple-300">
           <span><strong>${memberData.extraCount} Extra Slips</strong></span>
           <span>Separated</span>
         </div>
       </div>
 
       <!-- Card 3: Grand Total Paid -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-brand-500 transition-all">
-        <div class="absolute -right-3 -top-3 w-14 h-14 bg-brand-50 dark:bg-brand-950/40 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400">
+      <div class="card-3d card-3d-blue bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden group">
+        <div class="card-3d-icon absolute -right-3 -top-3 w-14 h-14 bg-brand-50 dark:bg-brand-950/40 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400">
           <i class="fa-solid fa-wallet text-xl opacity-70"></i>
         </div>
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Credited Capital</p>
         <div class="flex items-baseline gap-1 mt-2">
           <span class="text-2xl sm:text-3xl font-black text-brand-900 dark:text-brand-300">${formatCurrency(memberData.totalAmount)}</span>
         </div>
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div class="card-3d-tray mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>Deposits: <strong>${memberData.depositCount} Credited</strong></span>
           <span class="text-emerald-600 font-bold">100% Credited</span>
         </div>
       </div>
 
       <!-- Card 4: Clearance & Dues Status -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:border-emerald-500 transition-all">
-        <div class="absolute -right-3 -top-3 w-14 h-14 ${hasPending ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'} rounded-full flex items-center justify-center">
+      <div class="card-3d card-3d-emerald bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden group">
+        <div class="card-3d-icon absolute -right-3 -top-3 w-14 h-14 ${hasPending ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'} rounded-full flex items-center justify-center">
           <i class="fa-solid ${hasPending ? 'fa-clock' : 'fa-circle-check'} text-xl opacity-70"></i>
         </div>
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Account Health</p>
@@ -2054,7 +2054,7 @@ function renderMemberPersonalView() {
             ${hasPending ? 'Dues Pending' : '100% Cleared'}
           </span>
         </div>
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div class="card-3d-tray mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           ${hasPending ? `<span class="text-amber-600 font-bold">Pending: ${formatCurrency(memberData.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ Zero Pending Dues</span>'}
           <span class="text-slate-400 text-[10px]">Master Sheet Synced</span>
         </div>
@@ -5303,7 +5303,7 @@ function renderMembersGrid() {
 
   membersList.forEach((m, idx) => {
     const card = document.createElement('div');
-    card.className = 'bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-brand-500/50 transition-all flex flex-col justify-between';
+    card.className = 'card-3d card-3d-emerald bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 transition-all flex flex-col justify-between';
 
     const avatarBg = stringToColor(m.name);
     const hasPending = m.pendingAmount > 0;
@@ -5328,7 +5328,7 @@ function renderMembersGrid() {
       <div>
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-center gap-3">
-            ${renderUserAvatar(assignedUser || { name: m.name }, 'w-12 h-12 rounded-2xl shadow-md', 'text-sm')}
+            ${renderUserAvatar(assignedUser || { name: m.name }, 'avatar-3d w-12 h-12 rounded-2xl', 'text-sm')}
             <div>
               <div class="flex items-center gap-1.5">
                 <h4 class="font-bold text-base text-slate-900 dark:text-white leading-tight">
@@ -5342,7 +5342,7 @@ function renderMembersGrid() {
             </div>
           </div>
           
-          <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${hasPending ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400'}">
+          <span class="badge-3d px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${hasPending ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400'}">
             ${hasPending ? 'Dues Pending' : 'Paid Up'}
           </span>
         </div>
@@ -5389,21 +5389,21 @@ function renderMembersGrid() {
 
       <div class="flex items-center gap-2 mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
         ${cleanPhone ? `
-          <a href="https://wa.me/${cleanPhone}" target="_blank" title="WhatsApp Message" class="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center justify-center transition">
+          <a href="https://wa.me/${cleanPhone}" target="_blank" title="WhatsApp Message" class="btn-3d p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center justify-center transition">
             <i class="fa-brands fa-whatsapp text-sm"></i>
           </a>
-          <a href="tel:${m.phone}" title="Call Member" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
+          <a href="tel:${m.phone}" title="Call Member" class="btn-3d p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
             <i class="fa-solid fa-phone text-xs"></i>
           </a>
         ` : ''}
 
         ${isAdmin() && assignedUser ? `
-          <button onclick="openAddUserModal('${assignedUser.id}')" title="Admin: Edit Member Photo, NID &amp; Role" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
+          <button onclick="openAddUserModal('${assignedUser.id}')" title="Admin: Edit Member Photo, NID &amp; Role" class="btn-3d p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center justify-center transition">
             <i class="fa-solid fa-user-pen text-xs"></i>
           </button>
         ` : ''}
 
-        <button onclick="openMemberStatement('${m.name.replace(/'/g, "\\'")}')" class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-800 dark:text-brand-300 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-brand-200 dark:border-brand-800">
+        <button onclick="openMemberStatement('${m.name.replace(/'/g, "\\'")}')" class="btn-3d flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-800 dark:text-brand-300 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-brand-200 dark:border-brand-800">
           <i class="fa-solid fa-file-invoice text-xs"></i>
           <span>View Statement</span>
         </button>

@@ -140,3 +140,371 @@ body {
     padding: 0 !important;
   }
 }
+
+/* ==========================================================================
+   3D UI CARD DESIGN SYSTEM - PREMIUM DIMENSIONAL & TACTILE DEPTH
+   ========================================================================== */
+
+/* Universal 3D Card Base */
+.card-3d {
+  position: relative;
+  border-radius: 1.25rem; /* 20px */
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+              box-shadow 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+              border-color 0.3s ease,
+              background 0.3s ease;
+  transform: translateZ(0);
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+  overflow: hidden;
+}
+
+/* Light Mode 3D Card */
+.card-3d {
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 1) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 6px -1px rgba(15, 23, 42, 0.05),
+    0 12px 24px -4px rgba(15, 23, 42, 0.08),
+    0 24px 32px -12px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Dark Mode 3D Card (Deep Midnight & Glowing Edges as in Dashboard) */
+.dark .card-3d {
+  background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%) !important;
+  border: 1px solid rgba(51, 65, 85, 0.65) !important;
+  border-top: 1.5px solid rgba(148, 163, 184, 0.35) !important;
+  border-left: 1.5px solid rgba(100, 116, 139, 0.25) !important;
+  border-right: 1px solid rgba(15, 23, 42, 0.8) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.9) !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 10px 20px -3px rgba(0, 0, 0, 0.5),
+    0 20px 35px -8px rgba(0, 0, 0, 0.6),
+    0 30px 50px -15px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+}
+
+/* 3D Top Specular Shine Line */
+.card-3d::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.dark .card-3d::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.25) 50%, transparent 100%);
+}
+
+/* 3D Hover Elevation & Ambient Rim Glow */
+.card-3d:hover {
+  transform: translateY(-6px) scale(1.01) !important;
+}
+
+.card-3d:hover {
+  box-shadow: 
+    0 8px 16px -2px rgba(15, 23, 42, 0.06),
+    0 16px 28px -4px rgba(15, 23, 42, 0.1),
+    0 28px 48px -8px rgba(15, 23, 42, 0.12),
+    0 40px 60px -16px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 #ffffff !important;
+}
+
+.dark .card-3d:hover {
+  border-top-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 15px 30px -5px rgba(0, 0, 0, 0.7),
+    0 25px 45px -10px rgba(0, 0, 0, 0.8),
+    0 40px 70px -15px rgba(0, 0, 0, 0.9),
+    0 0 25px -4px var(--card-3d-glow, rgba(16, 185, 129, 0.25)),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Card Accent-Specific 3D Themes */
+.card-3d-emerald {
+  --card-3d-glow: rgba(16, 185, 129, 0.35);
+}
+.card-3d-emerald:hover {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+.card-3d-purple {
+  --card-3d-glow: rgba(168, 85, 247, 0.4);
+}
+.card-3d-purple:hover {
+  border-color: rgba(168, 85, 247, 0.6) !important;
+}
+
+.card-3d-blue {
+  --card-3d-glow: rgba(59, 130, 246, 0.35);
+}
+.card-3d-blue:hover {
+  border-color: rgba(59, 130, 246, 0.6) !important;
+}
+
+.card-3d-amber {
+  --card-3d-glow: rgba(245, 158, 11, 0.35);
+}
+.card-3d-amber:hover {
+  border-color: rgba(245, 158, 11, 0.6) !important;
+}
+
+.card-3d-cyan {
+  --card-3d-glow: rgba(6, 182, 212, 0.35);
+}
+.card-3d-cyan:hover {
+  border-color: rgba(6, 182, 212, 0.6) !important;
+}
+
+/* 3D Floating Embossed Icon Badge */
+.card-3d-icon {
+  position: absolute;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.4s ease;
+  transform: translateZ(15px);
+  will-change: transform;
+}
+
+.card-3d-icon {
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .card-3d-icon {
+  box-shadow: 
+    0 8px 16px -2px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.card-3d:hover .card-3d-icon {
+  transform: scale(1.15) translateY(-3px) rotate(4deg) translateZ(25px);
+}
+
+/* 3D Inset / Recessed Metrics Tray */
+.card-3d-tray {
+  border-radius: 0.85rem; /* 14px */
+  padding: 8px 12px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.card-3d-tray {
+  background: rgba(241, 245, 249, 0.7) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 
+    inset 0 1px 3px rgba(15, 23, 42, 0.06),
+    inset 0 2px 5px rgba(15, 23, 42, 0.03),
+    0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+.dark .card-3d-tray {
+  background: rgba(15, 23, 42, 0.65) !important;
+  border: 1px solid rgba(51, 65, 85, 0.55) !important;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3) !important;
+  box-shadow: 
+    inset 0 2px 5px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 3D Treasury Cards */
+.card-3d-treasury {
+  position: relative;
+  border-radius: 1.25rem;
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+}
+
+.card-3d-treasury::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.card-3d-treasury:hover {
+  transform: translateY(-5px) scale(1.01) !important;
+}
+
+/* Light Mode Treasury Cards */
+.card-3d-treasury-liquid {
+  background: linear-gradient(155deg, #ffffff 0%, #ecfdf5 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 1) !important;
+  box-shadow: 
+    0 4px 12px -2px rgba(16, 185, 129, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 #ffffff !important;
+}
+.card-3d-treasury-liquid:hover {
+  border-color: rgba(16, 185, 129, 0.7) !important;
+  box-shadow: 
+    0 12px 24px -4px rgba(16, 185, 129, 0.25),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 #ffffff !important;
+}
+
+.card-3d-treasury-invest {
+  background: linear-gradient(155deg, #ffffff 0%, #eff6ff 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 1) !important;
+  box-shadow: 
+    0 4px 12px -2px rgba(59, 130, 246, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 #ffffff !important;
+}
+.card-3d-treasury-invest:hover {
+  border-color: rgba(59, 130, 246, 0.7) !important;
+  box-shadow: 
+    0 12px 24px -4px rgba(59, 130, 246, 0.25),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 #ffffff !important;
+}
+
+.card-3d-treasury-ops {
+  background: linear-gradient(155deg, #ffffff 0%, #fffbeb 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 1) !important;
+  box-shadow: 
+    0 4px 12px -2px rgba(245, 158, 11, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 #ffffff !important;
+}
+.card-3d-treasury-ops:hover {
+  border-color: rgba(245, 158, 11, 0.7) !important;
+  box-shadow: 
+    0 12px 24px -4px rgba(245, 158, 11, 0.25),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 #ffffff !important;
+}
+
+.dark .card-3d-treasury-liquid {
+  background: linear-gradient(155deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  border-top: 1.5px solid rgba(52, 211, 153, 0.5) !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.6),
+    0 20px 35px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+.dark .card-3d-treasury-liquid:hover {
+  border-color: rgba(16, 185, 129, 0.7) !important;
+  box-shadow: 
+    0 18px 35px -5px rgba(0, 0, 0, 0.7),
+    0 0 25px -4px rgba(16, 185, 129, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark .card-3d-treasury-invest {
+  background: linear-gradient(155deg, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  border-top: 1.5px solid rgba(96, 165, 250, 0.5) !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.6),
+    0 20px 35px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+.dark .card-3d-treasury-invest:hover {
+  border-color: rgba(59, 130, 246, 0.7) !important;
+  box-shadow: 
+    0 18px 35px -5px rgba(0, 0, 0, 0.7),
+    0 0 25px -4px rgba(59, 130, 246, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark .card-3d-treasury-ops {
+  background: linear-gradient(155deg, rgba(120, 53, 15, 0.35) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  border-top: 1.5px solid rgba(251, 191, 36, 0.5) !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.6),
+    0 20px 35px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+.dark .card-3d-treasury-ops:hover {
+  border-color: rgba(245, 158, 11, 0.7) !important;
+  box-shadow: 
+    0 18px 35px -5px rgba(0, 0, 0, 0.7),
+    0 0 25px -4px rgba(245, 158, 11, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+/* 3D Tactile Buttons */
+.btn-3d {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 
+    0 3px 6px -1px rgba(0, 0, 0, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.15);
+}
+
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 14px -2px rgba(0, 0, 0, 0.25),
+    0 2px 5px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.btn-3d:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+/* 3D Badges & Status Tags */
+.badge-3d {
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1);
+}
+.dark .badge-3d {
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 3D Avatar Shadow & Ring */
+.avatar-3d {
+  box-shadow: 
+    0 8px 16px -2px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card-3d:hover .avatar-3d {
+  transform: scale(1.08) translateY(-2px);
+}
+

@@ -18,7 +18,35 @@ const CONFIG = {
   STORAGE_KEY_SCHEDULE: 'al_ikhlas_share_schedule_v1',
   STORAGE_KEY_BANK: 'al_ikhlas_bank_details_v1',
   STORAGE_KEY_INVESTMENT: 'al_ikhlas_investment_cache_v1',
+  STORAGE_KEY_ROLES: 'al_ikhlas_assigned_roles_v1',
 };
+
+// Admin Assigned Roles Helpers (Guarantees roles are NEVER changed automatically)
+function getAdminAssignedRoles() {
+  try {
+    return JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_ROLES) || localStorage.getItem('al_ikhlas_assigned_roles') || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveAdminAssignedRole(id, email, name, role) {
+  const roles = getAdminAssignedRoles();
+  if (id) roles[id] = role;
+  if (email) roles[email.toLowerCase()] = role;
+  if (name) roles[name.toLowerCase().trim()] = role;
+  localStorage.setItem(CONFIG.STORAGE_KEY_ROLES, JSON.stringify(roles));
+  localStorage.setItem('al_ikhlas_assigned_roles', JSON.stringify(roles));
+}
+
+function removeAdminAssignedRole(id, email, name) {
+  const roles = getAdminAssignedRoles();
+  if (id) delete roles[id];
+  if (email) delete roles[email.toLowerCase()];
+  if (name) delete roles[name.toLowerCase().trim()];
+  localStorage.setItem(CONFIG.STORAGE_KEY_ROLES, JSON.stringify(roles));
+  localStorage.setItem('al_ikhlas_assigned_roles', JSON.stringify(roles));
+}
 
 // 11-Year Official Financial Year Share & Extra Schedule (2025-2026 to 2035-2036)
 const DEFAULT_SHARE_SCHEDULE = [
@@ -1371,6 +1399,7 @@ function initUsersAndAuth() {
 
   // Load users from storage or use defaults
   const storedUsers = localStorage.getItem(CONFIG.STORAGE_KEY_USERS);
+  const adminAssignedRoles = getAdminAssignedRoles();
   if (storedUsers) {
     try {
       state.users = JSON.parse(storedUsers);
@@ -1398,14 +1427,28 @@ function initUsersAndAuth() {
         } else if (typeof u.assignedShares === 'undefined' || !u.assignedShares || u.assignedShares === 15) {
           u.assignedShares = def ? def.assignedShares : 1;
         }
+
+        // Strictly enforce Admin-assigned role: Only Admin can change Assigned Role, never automatic
+        const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
+        if (lockedRole) {
+          u.role = lockedRole;
+        }
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     } catch (e) {
       state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+      state.users.forEach(u => {
+        const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
+        if (lockedRole) u.role = lockedRole;
+      });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     }
   } else {
     state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+    state.users.forEach(u => {
+      const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
+      if (lockedRole) u.role = lockedRole;
+    });
     // Apply cached net shares if present
     if (state.memberNetShares && state.memberNetShares.size > 0) {
       state.users.forEach(u => {
@@ -2528,6 +2571,7 @@ function deleteUser(userId) {
   if (!user) return;
 
   if (confirm(`Are you sure you want to remove user "${user.name}"?`)) {
+    removeAdminAssignedRole(user.id, user.email, user.name);
     state.users = state.users.filter(u => u.id !== userId);
     localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     renderAdminUsersTable();
@@ -2537,6 +2581,10 @@ function deleteUser(userId) {
 
 function handleUserSubmit(e) {
   e.preventDefault();
+  if (!canManageUsers()) {
+    showToast('Only Admin / President can change assigned roles or edit member accounts.', 'error');
+    return;
+  }
   const id = document.getElementById('form-user-id').value;
   const name = document.getElementById('form-user-name').value.trim();
   const email = document.getElementById('form-user-email').value.trim().toLowerCase();
@@ -2564,6 +2612,7 @@ function handleUserSubmit(e) {
       u.email = email;
       u.phone = phone;
       u.role = role;
+      saveAdminAssignedRole(u.id, u.email, u.name, role);
       u.nid = nid;
       u.nomineeName = nomineeName;
       u.nomineeRelation = nomineeRelation;
@@ -2593,6 +2642,7 @@ function handleUserSubmit(e) {
   } else {
     // Add new user
     const newId = 'u_' + Date.now();
+    saveAdminAssignedRole(newId, email, name, role);
     const newUser = {
       id: newId,
       name,
@@ -3258,7 +3308,7 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
           }
           if (!target.nomineeNid && cu.nomineeNid) target.nomineeNid = cu.nomineeNid;
           if (!target.nomineeRelation && cu.nomineeRelation) target.nomineeRelation = cu.nomineeRelation;
-          if (cu.role && !isAdmin()) target.role = cu.role;
+          // Never change Assigned Role automatically: Only Admin can change it.
         } else {
           // Cloud has newer data or no local conflict
           if (typeof cloudAvatar !== 'undefined' && cloudAvatar !== null && cloudAvatar !== '') {
@@ -3288,11 +3338,18 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
           } else if (typeof cu.assignedShares !== 'undefined' && cu.assignedShares !== 15) {
             target.assignedShares = cu.assignedShares;
           }
-          if (cu.role) target.role = cu.role;
+          // Never change Assigned Role automatically: Only Admin can change it.
           if (cu.password) target.password = cu.password;
           if (cu.name) target.name = cu.name;
           if (cu.sheetName) target.sheetName = cu.sheetName;
           if (cu.updatedAt) target.updatedAt = cu.updatedAt;
+        }
+
+        // Strictly lock and protect Admin-assigned role: Only Admin can change Assigned Role, never automatic
+        const adminAssignedRoles = getAdminAssignedRoles();
+        const lockedRole = (target.id && adminAssignedRoles[target.id]) || (target.email && adminAssignedRoles[target.email.toLowerCase()]) || (target.name && adminAssignedRoles[target.name.toLowerCase().trim()]);
+        if (lockedRole) {
+          target.role = lockedRole;
         }
 
         // Always guarantee Net Share from live Google Sheet takes precedence for Subscribed shares
@@ -3319,6 +3376,7 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
       if (me) {
         const curLocalTime = state.currentUser.localUpdatedAt || (state.currentUser.updatedAt ? new Date(state.currentUser.updatedAt).getTime() : 0);
         const meLocalTime = me.localUpdatedAt || (me.updatedAt ? new Date(me.updatedAt).getTime() : 0);
+        const currentRole = state.currentUser.role;
 
         if (meLocalTime >= curLocalTime) {
           Object.assign(state.currentUser, me);
@@ -3326,6 +3384,15 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
           // Current user was edited even more recently, ensure state.users reflects it
           Object.assign(me, state.currentUser);
         }
+
+        // Strictly safeguard currentUser role from being altered automatically
+        const adminAssignedRoles = getAdminAssignedRoles();
+        const lockedMyRole = (state.currentUser.id && adminAssignedRoles[state.currentUser.id]) || (state.currentUser.email && adminAssignedRoles[state.currentUser.email.toLowerCase()]) || currentRole;
+        if (lockedMyRole) {
+          state.currentUser.role = lockedMyRole;
+          me.role = lockedMyRole;
+        }
+
         // Always guarantee Net Share from live Google Sheet takes precedence for currentUser
         const liveCurNet = state.memberNetShares.get(state.currentUser.name.toLowerCase().trim()) || (state.currentUser.sheetName && state.memberNetShares.get(state.currentUser.sheetName.toLowerCase().trim()));
         if (typeof liveCurNet !== 'undefined' && liveCurNet !== null) {

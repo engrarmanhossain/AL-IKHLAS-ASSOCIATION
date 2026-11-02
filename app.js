@@ -1433,6 +1433,13 @@ function initUsersAndAuth() {
         const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
         if (lockedRole) {
           u.role = lockedRole;
+        } else if (def && def.role) {
+          if (!u.role || (def.role !== 'Member' && u.role === 'Member')) {
+            u.role = def.role;
+          }
+        }
+        if (u.id === 'u1' || (u.email && u.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
+          u.role = 'President';
         }
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
@@ -1441,6 +1448,9 @@ function initUsersAndAuth() {
       state.users.forEach(u => {
         const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
         if (lockedRole) u.role = lockedRole;
+        if (u.id === 'u1' || (u.email && u.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
+          u.role = 'President';
+        }
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
     }
@@ -1449,6 +1459,9 @@ function initUsersAndAuth() {
     state.users.forEach(u => {
       const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
       if (lockedRole) u.role = lockedRole;
+      if (u.id === 'u1' || (u.email && u.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
+        u.role = 'President';
+      }
     });
     // Apply cached net shares if present
     if (state.memberNetShares && state.memberNetShares.size > 0) {
@@ -1814,7 +1827,9 @@ function renderMemberPersonalView() {
 
   const memberData = getMemberDataForUser(state.currentUser);
   const avatarBg = stringToColor(state.currentUser.name);
-  const hasPending = memberData.pendingAmount > 0;
+  const hasDue = (memberData.dueAmount || 0) > 0;
+  const hasInProgress = (memberData.inprogressAmount || 0) > 0;
+  const hasPending = hasDue || hasInProgress;
 
   let cleanPhone = (state.currentUser.phone || memberData.phone || '').replace(/[^0-9]/g, '');
   if (cleanPhone.startsWith('0')) cleanPhone = '88' + cleanPhone;
@@ -1841,8 +1856,15 @@ function renderMemberPersonalView() {
         '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit (Credit)</span>' :
         '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share (Credit)</span>';
 
-      const statusBadge = tx.status === 'Received' ?
+      const isRec = tx.status === 'Received';
+      const isDue = tx.status === 'Due';
+      const isProg = tx.status === 'In Progress' || tx.status === 'Credit Inflow';
+      const statusBadge = isRec ?
         '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><i class="fa-solid fa-circle-check mr-1 text-[9px]"></i>Received</span>' :
+        isDue ?
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800"><i class="fa-solid fa-circle-exclamation mr-1 text-[9px]"></i>Due</span>' :
+        isProg ?
+        '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800"><i class="fa-solid fa-hourglass-half mr-1 text-[9px]"></i>In Progress</span>' :
         '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"><i class="fa-solid fa-clock mr-1 text-[9px]"></i>Pending</span>';
 
       return `
@@ -2137,17 +2159,17 @@ function renderMemberPersonalView() {
 
       <!-- Card 4: Clearance & Dues Status -->
       <div class="card-3d card-3d-emerald bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden group">
-        <div class="card-3d-icon absolute -right-3 -top-3 w-14 h-14 ${hasPending ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'} rounded-full flex items-center justify-center">
-          <i class="fa-solid ${hasPending ? 'fa-clock' : 'fa-circle-check'} text-xl opacity-70"></i>
+        <div class="card-3d-icon absolute -right-3 -top-3 w-14 h-14 ${hasDue ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600' : hasInProgress ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-600' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600'} rounded-full flex items-center justify-center">
+          <i class="fa-solid ${hasDue ? 'fa-clock' : hasInProgress ? 'fa-hourglass-half' : 'fa-circle-check'} text-xl opacity-70"></i>
         </div>
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Account Health</p>
         <div class="flex items-baseline gap-1 mt-2">
-          <span class="text-2xl sm:text-3xl font-black ${hasPending ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}">
-            ${hasPending ? 'Dues Pending' : '100% Cleared'}
+          <span class="text-2xl sm:text-3xl font-black ${hasDue ? 'text-amber-600 dark:text-amber-400' : hasInProgress ? 'text-sky-600 dark:text-sky-400' : 'text-emerald-600 dark:text-emerald-400'}">
+            ${hasDue ? 'Due Amount' : hasInProgress ? 'In Progress' : '100% Cleared'}
           </span>
         </div>
         <div class="card-3d-tray mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          ${hasPending ? `<span class="text-amber-600 font-bold">Pending: ${formatCurrency(memberData.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ Zero Pending Dues</span>'}
+          ${hasDue && hasInProgress ? `<span class="text-amber-600 font-bold">Due: ${formatCurrency(memberData.dueAmount)}</span><span class="text-sky-600 font-bold">In Progress: ${formatCurrency(memberData.inprogressAmount)}</span>` : hasDue ? `<span class="text-amber-600 dark:text-amber-400 font-bold">Due: ${formatCurrency(memberData.dueAmount)}</span>` : hasInProgress ? `<span class="text-sky-600 dark:text-sky-400 font-bold">In Progress: ${formatCurrency(memberData.inprogressAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ Zero Pending Dues</span>'}
           <span class="text-slate-400 text-[10px]">Master Sheet Synced</span>
         </div>
       </div>
@@ -2193,7 +2215,7 @@ function renderMemberPersonalView() {
               <td class="py-3 px-4" colspan="3">Total Credited to Account</td>
               <td class="py-3 px-4 text-center text-brand-700 dark:text-brand-400 font-extrabold">${memberData.totalShares} Shares</td>
               <td class="py-3 px-4 text-right text-emerald-700 dark:text-emerald-400 text-sm font-black">+${formatCurrency(memberData.totalAmount)}</td>
-              <td class="py-3 px-4 text-center text-emerald-600 font-bold">100% Verified</td>
+              <td class="py-3 px-4 text-center font-bold">${hasDue ? '<span class="text-amber-600 dark:text-amber-400">Due</span>' : hasInProgress ? '<span class="text-sky-600 dark:text-sky-400">In Progress</span>' : '<span class="text-emerald-600">100% Verified</span>'}</td>
             </tr>
           </tfoot>
         </table>
@@ -2381,7 +2403,10 @@ function handleMemberProfileSubmit(e) {
   closeMemberProfileModal();
 
   showToast('Profile and photo saved permanently! Broadcasting to Google Cloud...', 'success');
-  syncConfigToCloud('users', state.users);
+  // Strictly protect assigned roles: Only Admin can broadcast association users or roles to cloud
+  if (canManageUsers()) {
+    syncConfigToCloud('users', state.users);
+  }
   if (avatarUpdated && tempProfileAvatar && state.currentUser.id) {
     syncConfigToCloud('avatar_' + state.currentUser.id, tempProfileAvatar);
   }
@@ -2726,7 +2751,10 @@ function handleUserSubmit(e) {
   renderAuthHeader();
   closeUserModal();
   showToast(`Saved member profile, photo & role for "${name}"! Syncing across all devices...`, 'success');
-  syncConfigToCloud('users', state.users);
+  // Strictly protect assigned roles: Only Admin can broadcast association users or roles to cloud
+  if (canManageUsers()) {
+    syncConfigToCloud('users', state.users);
+  }
   if (avatarUpdatedId && avatarUpdatedVal) {
     syncConfigToCloud('avatar_' + avatarUpdatedId, avatarUpdatedVal);
   }
@@ -2735,8 +2763,7 @@ function handleUserSubmit(e) {
 // Payment Status Overrides & Approval Actions
 function loadSavedOverrides() {
   try {
-    localStorage.removeItem(CONFIG.STORAGE_KEY_OVERRIDES);
-    state.statusOverrides = {};
+    state.statusOverrides = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_OVERRIDES)) || {};
     state.customTransactions = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY_NEW_TXS)) || [];
   } catch (e) {
     state.statusOverrides = {};
@@ -2745,7 +2772,7 @@ function loadSavedOverrides() {
 }
 
 function saveOverrides() {
-  state.statusOverrides = {};
+  localStorage.setItem(CONFIG.STORAGE_KEY_OVERRIDES, JSON.stringify(state.statusOverrides));
   localStorage.setItem(CONFIG.STORAGE_KEY_NEW_TXS, JSON.stringify(state.customTransactions));
 }
 
@@ -2760,17 +2787,21 @@ function togglePaymentApproval(uniqueId, newStatus) {
   state.statusOverrides[uniqueId] = newStatus;
   saveOverrides();
 
-  // Update transaction object in memory
-  const tx = state.transactions.find(t => t.uniqueId === uniqueId);
-  if (tx) {
-    tx.status = newStatus;
+  // Re-process raw data to cleanly recalculate all member totals, KPIs, and balances
+  if (state.rawRows && state.rawRows.length > 1) {
+    processRawData(state.rawRows, false);
+  } else {
+    const tx = state.transactions.find(t => t.uniqueId === uniqueId);
+    if (tx) tx.status = newStatus;
+    updateKPIs();
+    renderPendingQueue();
+    applyFiltersAndRenderTable();
+    renderCharts();
   }
 
-  // Recalculate KPIs and re-render
-  updateKPIs();
-  renderPendingQueue();
-  applyFiltersAndRenderTable();
-  renderCharts();
+  if (state.currentUser && !isAdmin()) {
+    renderMemberPersonalView();
+  }
 
   showToast(`Payment marked as "${newStatus}"!`, 'success');
 }
@@ -3038,7 +3069,7 @@ const UPGRADED_APPS_SCRIPT_CODE = `function doGet(e) {
         colMap.trxId !== -1 ? row[colMap.trxId] : "Deposit Slip",
         colMap.shares !== -1 ? row[colMap.shares] : 1,
         colMap.email !== -1 ? row[colMap.email] : "",
-        colMap.status !== -1 ? row[colMap.status] : "Received",
+        colMap.status !== -1 ? (row[colMap.status] || "") : "",
         colMap.month !== -1 ? row[colMap.month] : "",
         sName,
         sGid
@@ -3399,6 +3430,14 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
         const lockedRole = (target.id && adminAssignedRoles[target.id]) || (target.email && adminAssignedRoles[target.email.toLowerCase()]) || (target.name && adminAssignedRoles[target.name.toLowerCase().trim()]);
         if (lockedRole) {
           target.role = lockedRole;
+        } else {
+          const def = DEFAULT_USERS.find(d => d.id === target.id || (d.email && target.email && d.email.toLowerCase() === target.email.toLowerCase()));
+          if (def && def.role && (!target.role || (def.role !== 'Member' && target.role === 'Member'))) {
+            target.role = def.role;
+          }
+        }
+        if (target.id === 'u1' || (target.email && target.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
+          target.role = 'President';
         }
 
         // Always guarantee Net Share from live Google Sheet takes precedence for Subscribed shares
@@ -3440,6 +3479,10 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
         if (lockedMyRole) {
           state.currentUser.role = lockedMyRole;
           me.role = lockedMyRole;
+        }
+        if (state.currentUser.id === 'u1' || (state.currentUser.email && state.currentUser.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
+          state.currentUser.role = 'President';
+          me.role = 'President';
         }
 
         // Always guarantee Net Share from live Google Sheet takes precedence for currentUser
@@ -4674,9 +4717,26 @@ function processRawData(rows, triggerToast = false) {
     // Unique Identifier for this row
     const uniqueId = `row_${i}_${srcGid}_${rawName}_${amount}_${depDate ? depDate.getTime() : i}`;
 
-    // Status strictly parsed from spreadsheet
-    let rawStatus = (row[colIndex.status] || 'Received').toString().trim();
-    let status = rawStatus.toLowerCase().includes('pending') ? 'Pending' : 'Received';
+    // Status strictly parsed from spreadsheet: only marked as 'Received' if explicitly stated in the sheet
+    const rawStatus = (row[colIndex.status] || '').toString().trim();
+    const rawLower = rawStatus.toLowerCase();
+    let status = 'In Progress';
+    if (rawLower.includes('received')) {
+      status = 'Received';
+    } else if (rawLower.includes('due')) {
+      status = 'Due';
+    } else if (rawLower.includes('inflow') || rawLower.includes('progress')) {
+      status = 'In Progress';
+    } else if (rawLower.includes('pending')) {
+      status = 'Pending';
+    } else {
+      status = 'In Progress';
+    }
+
+    // Apply Admin status override if any exists
+    if (state.statusOverrides && state.statusOverrides[uniqueId]) {
+      status = state.statusOverrides[uniqueId];
+    }
 
     // Phone
     const phone = (row[colIndex.phone] || '').toString().trim();
@@ -4721,31 +4781,43 @@ function processRawData(rows, triggerToast = false) {
         extraAmount: 0,
         receivedAmount: 0,
         pendingAmount: 0,
+        inprogressAmount: 0,
+        dueAmount: 0,
         totalShares: 0,
         regularCount: 0,
         extraCount: 0,
         depositCount: 0,
+        pendingCount: 0,
+        inprogressCount: 0,
+        dueCount: 0,
         transactions: [],
       });
     }
 
     const m = members.get(rawName);
-    m.totalAmount += amount;
-    if (isExtra) {
-      m.extraAmount += amount;
-      m.extraCount += 1;
-    } else {
-      m.regularAmount += amount;
-      m.totalShares += shares;
-      m.regularCount += 1;
-    }
-
     if (status === 'Received') {
+      m.totalAmount += amount;
       m.receivedAmount += amount;
+      m.depositCount += 1;
+      if (isExtra) {
+        m.extraAmount += amount;
+        m.extraCount += 1;
+      } else {
+        m.regularAmount += amount;
+        m.totalShares += shares;
+        m.regularCount += 1;
+      }
     } else {
       m.pendingAmount += amount;
+      m.pendingCount = (m.pendingCount || 0) + 1;
+      if (status === 'Due') {
+        m.dueAmount = (m.dueAmount || 0) + amount;
+        m.dueCount = (m.dueCount || 0) + 1;
+      } else {
+        m.inprogressAmount = (m.inprogressAmount || 0) + amount;
+        m.inprogressCount = (m.inprogressCount || 0) + 1;
+      }
     }
-    m.depositCount += 1;
     if (phone && !m.phone) m.phone = phone;
     m.transactions.push(tx);
   }
@@ -4759,18 +4831,29 @@ function processRawData(rows, triggerToast = false) {
     parsedTransactions.unshift(ctx);
     if (members.has(ctx.name)) {
       const m = members.get(ctx.name);
-      m.totalAmount += ctx.amount;
-      if (ctx.isExtra) {
-        m.extraAmount += ctx.amount;
-        m.extraCount++;
+      if (ctx.status === 'Received') {
+        m.totalAmount += ctx.amount;
+        m.receivedAmount += ctx.amount;
+        m.depositCount++;
+        if (ctx.isExtra) {
+          m.extraAmount += ctx.amount;
+          m.extraCount++;
+        } else {
+          m.regularAmount += ctx.amount;
+          m.totalShares += ctx.shares;
+          m.regularCount++;
+        }
       } else {
-        m.regularAmount += ctx.amount;
-        m.totalShares += ctx.shares;
-        m.regularCount++;
+        m.pendingAmount += ctx.amount;
+        m.pendingCount = (m.pendingCount || 0) + 1;
+        if (ctx.status === 'Due') {
+          m.dueAmount = (m.dueAmount || 0) + ctx.amount;
+          m.dueCount = (m.dueCount || 0) + 1;
+        } else {
+          m.inprogressAmount = (m.inprogressAmount || 0) + ctx.amount;
+          m.inprogressCount = (m.inprogressCount || 0) + 1;
+        }
       }
-      if (ctx.status === 'Received') m.receivedAmount += ctx.amount;
-      else m.pendingAmount += ctx.amount;
-      m.depositCount++;
       m.transactions.unshift(ctx);
     }
   });
@@ -4800,6 +4883,10 @@ function updateKPIs() {
   let extraAmount = 0;
   let receivedAmount = 0;
   let pendingAmount = 0;
+  let inprogressAmount = 0;
+  let inprogressCount = 0;
+  let dueAmount = 0;
+  let dueCount = 0;
   let totalShares = 0;
   let extraCount = 0;
   let receivedCount = 0;
@@ -4807,31 +4894,67 @@ function updateKPIs() {
 
   state.transactions.forEach(tx => {
     totalAmount += tx.amount;
-    if (tx.isExtra) {
-      extraAmount += tx.amount;
-      extraCount++;
-    } else {
-      regularAmount += tx.amount;
-      totalShares += tx.shares;
-    }
-
     if (tx.status === 'Received') {
       receivedAmount += tx.amount;
       receivedCount++;
+      if (tx.isExtra) {
+        extraAmount += tx.amount;
+        extraCount++;
+      } else {
+        regularAmount += tx.amount;
+        totalShares += tx.shares;
+      }
     } else {
       pendingAmount += tx.amount;
       pendingCount++;
+      if (tx.status === 'Due') {
+        dueAmount += tx.amount;
+        dueCount++;
+      } else {
+        inprogressAmount += tx.amount;
+        inprogressCount++;
+      }
     }
   });
 
   const memberCount = state.membersMap.size;
-  const avgMember = memberCount > 0 ? (totalAmount / memberCount) : 0;
+  const avgMember = memberCount > 0 ? (receivedAmount / memberCount) : 0;
   const collectionRate = totalAmount > 0 ? ((receivedAmount / totalAmount) * 100).toFixed(1) : 100;
 
   // DOM Elements Update
-  document.getElementById('kpi-total-amount').textContent = formatCurrency(totalAmount);
+  document.getElementById('kpi-total-amount').textContent = formatCurrency(receivedAmount);
   document.getElementById('kpi-received-amount').textContent = formatCurrency(receivedAmount);
-  document.getElementById('kpi-pending-amount').textContent = formatCurrency(pendingAmount);
+  
+  const pendingAmtEl = document.getElementById('kpi-pending-amount');
+  if (pendingAmtEl) {
+    pendingAmtEl.textContent = formatCurrency(inprogressAmount);
+    if (inprogressAmount === 0) {
+      pendingAmtEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold text-xs';
+    } else {
+      pendingAmtEl.className = 'text-sky-600 dark:text-sky-400 font-bold text-xs';
+    }
+  }
+
+  const dueAmtEl = document.getElementById('kpi-due-amount');
+  if (dueAmtEl) {
+    dueAmtEl.textContent = formatCurrency(dueAmount);
+    if (dueAmount === 0) {
+      dueAmtEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold text-xs';
+    } else {
+      dueAmtEl.className = 'text-amber-600 dark:text-amber-400 font-bold text-xs';
+    }
+  }
+
+  const creditedBadge = document.getElementById('kpi-credited-badge');
+  if (creditedBadge) {
+    if (dueAmount > 0 || inprogressAmount > 0) {
+      creditedBadge.className = 'badge-3d px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800';
+      creditedBadge.textContent = `${collectionRate}% Cleared`;
+    } else {
+      creditedBadge.className = 'badge-3d px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800';
+      creditedBadge.textContent = '100% Credited';
+    }
+  }
 
   document.getElementById('kpi-regular-amount').textContent = formatCurrency(regularAmount);
   document.getElementById('kpi-total-shares').textContent = totalShares;
@@ -4843,26 +4966,27 @@ function updateKPIs() {
   document.getElementById('kpi-avg-member').textContent = formatCurrency(avgMember);
 
   document.getElementById('kpi-collection-rate').textContent = `${collectionRate}%`;
-  document.getElementById('kpi-received-count').textContent = `${receivedCount} Approved`;
+  document.getElementById('kpi-received-count').textContent = `${receivedCount} Received`;
 
   const pendingCountEl = document.getElementById('kpi-pending-count');
   if (pendingCountEl) {
-    if (pendingCount > 0) {
-      pendingCountEl.className = 'text-amber-600 dark:text-amber-400 font-bold';
-      pendingCountEl.textContent = `${pendingCount} Pending`;
+    if (inprogressCount > 0) {
+      pendingCountEl.className = 'text-sky-600 dark:text-sky-400 font-bold flex items-center gap-1';
+      pendingCountEl.innerHTML = `<i class="fa-solid fa-hourglass-half text-[10px]"></i> ${inprogressCount} In Progress`;
     } else {
       pendingCountEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1';
-      pendingCountEl.innerHTML = '<i class="fa-solid fa-circle-check text-[10px]"></i> 0 Pending';
+      pendingCountEl.innerHTML = '<i class="fa-solid fa-circle-check text-[10px]"></i> 0 In Progress';
     }
   }
 
-  const pendingAmtEl = document.getElementById('kpi-pending-amount');
-  if (pendingAmtEl) {
-    pendingAmtEl.textContent = formatCurrency(pendingAmount);
-    if (pendingAmount === 0) {
-      pendingAmtEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold text-xs';
+  const dueCountEl = document.getElementById('kpi-due-count');
+  if (dueCountEl) {
+    if (dueCount > 0) {
+      dueCountEl.className = 'text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1';
+      dueCountEl.innerHTML = `<i class="fa-solid fa-clock text-[10px]"></i> ${dueCount} Due`;
     } else {
-      pendingAmtEl.className = 'text-amber-600 dark:text-amber-400 font-bold text-xs';
+      dueCountEl.className = 'text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1';
+      dueCountEl.innerHTML = '<i class="fa-solid fa-circle-check text-[10px]"></i> 0 Due';
     }
   }
 
@@ -5149,6 +5273,7 @@ function renderCharts() {
   // 1. Monthly Stacked Bar (Regular Shares vs Extra Deposits)
   const monthlyDataMap = new Map();
   state.transactions.forEach(tx => {
+    if (tx.status !== 'Received') return;
     const m = tx.monthLabel;
     if (m === 'Unknown') return;
     if (!monthlyDataMap.has(m)) {
@@ -5422,17 +5547,26 @@ function renderMembersGrid() {
     card.className = 'card-3d card-3d-emerald bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 transition-all flex flex-col justify-between';
 
     const avatarBg = stringToColor(m.name);
-    const hasPending = m.pendingAmount > 0;
+    const hasDue = (m.dueAmount || 0) > 0;
+    const hasInProgress = (m.inprogressAmount || 0) > 0;
+    const hasPending = hasDue || hasInProgress;
+    const statusText = hasDue ? 'Due' : (hasInProgress ? 'In Progress' : 'Paid Up');
+    const badgeColor = hasDue ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : (hasInProgress ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400');
 
     let cleanPhone = m.phone.replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '88' + cleanPhone;
 
-    // Check user role from state.users
+    // Check user role from state.users with robust trimmed match
+    const mNameClean = (m.name || '').toLowerCase().trim();
     const assignedUser = state.users.find(u => 
-      (u.sheetName && u.sheetName.toLowerCase() === m.name.toLowerCase()) ||
-      u.name.toLowerCase() === m.name.toLowerCase()
+      ((u.sheetName || '').toLowerCase().trim() === mNameClean) ||
+      ((u.name || '').toLowerCase().trim() === mNameClean)
     );
-    const roleBadge = assignedUser ? assignedUser.role : 'Member';
+    const defUser = DEFAULT_USERS.find(d => 
+      d.name.toLowerCase().trim() === mNameClean || 
+      (d.sheetName && d.sheetName.toLowerCase().trim() === mNameClean)
+    );
+    const roleBadge = (assignedUser && assignedUser.role) ? assignedUser.role : (defUser ? defUser.role : 'Member');
     const userNid = assignedUser ? assignedUser.nid : '';
     const userNominee = assignedUser ? assignedUser.nomineeName : '';
     const userNomineeRel = assignedUser ? assignedUser.nomineeRelation : '';
@@ -5458,8 +5592,8 @@ function renderMembersGrid() {
             </div>
           </div>
           
-          <span class="badge-3d px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${hasPending ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400'}">
-            ${hasPending ? 'Dues Pending' : 'Paid Up'}
+          <span class="badge-3d px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${badgeColor}">
+            ${statusText}
           </span>
         </div>
 
@@ -5479,7 +5613,7 @@ function renderMembersGrid() {
 
         <div class="flex items-center justify-between text-xs text-slate-500 mt-3 px-1">
           <span>Total Credited: <strong class="text-slate-900 dark:text-white font-black">${formatCurrency(m.totalAmount)}</strong></span>
-          ${hasPending ? `<span class="text-rose-500 font-bold">Pending: ${formatCurrency(m.pendingAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
+          ${hasDue && hasInProgress ? `<span class="text-amber-600 font-bold">Due: ${formatCurrency(m.dueAmount)}</span> • <span class="text-sky-600 font-bold">${formatCurrency(m.inprogressAmount)}</span>` : hasDue ? `<span class="text-amber-600 dark:text-amber-400 font-bold">Due: ${formatCurrency(m.dueAmount)}</span>` : hasInProgress ? `<span class="text-sky-600 dark:text-sky-400 font-bold">In Progress: ${formatCurrency(m.inprogressAmount)}</span>` : '<span class="text-emerald-600 font-medium">✓ 100% Cleared</span>'}
         </div>
 
         <!-- Identification, Nominee & Membership Tenure Badges -->
@@ -5538,9 +5672,10 @@ function openMemberStatement(memberName) {
   if (!member) return;
 
   // Match user record for NID & Nominee info
+  const memberNameClean = (member.name || '').toLowerCase().trim();
   const assignedUser = state.users.find(u => 
-    (u.sheetName && u.sheetName.toLowerCase() === member.name.toLowerCase()) ||
-    u.name.toLowerCase() === member.name.toLowerCase()
+    ((u.sheetName || '').toLowerCase().trim() === memberNameClean) ||
+    ((u.name || '').toLowerCase().trim() === memberNameClean)
   );
 
   document.getElementById('modal-member-name').textContent = member.name;
@@ -5550,7 +5685,24 @@ function openMemberStatement(memberName) {
   document.getElementById('modal-member-extra').textContent = formatCurrency(member.extraAmount);
   document.getElementById('modal-member-extra-count').textContent = `${member.extraCount} Extra Slips`;
   document.getElementById('modal-member-total').textContent = formatCurrency(member.totalAmount);
-  document.getElementById('modal-member-status').textContent = member.pendingAmount > 0 ? `Pending: ${formatCurrency(member.pendingAmount)}` : 'Cleared';
+  const statusEl = document.getElementById('modal-member-status');
+  if (statusEl) {
+    const hasDue = (member.dueAmount || 0) > 0;
+    const hasProg = (member.inprogressAmount || 0) > 0;
+    if (hasDue && hasProg) {
+      statusEl.innerHTML = `<span class="text-amber-600">Due: ${formatCurrency(member.dueAmount)}</span> • <span class="text-sky-600">In Progress: ${formatCurrency(member.inprogressAmount)}</span>`;
+      statusEl.className = 'text-xs font-semibold block';
+    } else if (hasDue) {
+      statusEl.textContent = `Due: ${formatCurrency(member.dueAmount)}`;
+      statusEl.className = 'text-xs font-semibold text-amber-600 dark:text-amber-400 block';
+    } else if (hasProg) {
+      statusEl.textContent = `In Progress: ${formatCurrency(member.inprogressAmount)}`;
+      statusEl.className = 'text-xs font-semibold text-sky-600 dark:text-sky-400 block';
+    } else {
+      statusEl.textContent = 'Cleared';
+      statusEl.className = 'text-xs font-semibold text-emerald-600 block';
+    }
+  }
 
   // NID & Nominee fields
   const nidEl = document.getElementById('modal-member-nid');
@@ -5599,8 +5751,8 @@ function openMemberStatement(memberName) {
       <td class="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-300">${tx.isExtra ? '-' : tx.shares}</td>
       <td class="py-2.5 px-3 text-right font-extrabold ${tx.isExtra ? 'text-purple-700 dark:text-purple-400' : 'text-emerald-700 dark:text-emerald-400'}">+${formatCurrency(tx.amount)}</td>
       <td class="py-2.5 px-3 text-center">
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.status === 'Received' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'}">
-          ${tx.status}
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.status === 'Received' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : tx.status === 'Due' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800' : (tx.status === 'In Progress' || tx.status === 'Credit Inflow') ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}">
+          ${tx.status === 'Received' ? '<i class="fa-solid fa-circle-check mr-1 text-[9px]"></i>Received' : tx.status === 'Due' ? '<i class="fa-solid fa-circle-exclamation mr-1 text-[9px]"></i>Due' : (tx.status === 'In Progress' || tx.status === 'Credit Inflow') ? '<i class="fa-solid fa-hourglass-half mr-1 text-[9px]"></i>In Progress' : tx.status}
         </span>
       </td>
     `;
@@ -5722,23 +5874,30 @@ function renderTablePage() {
       '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><i class="fa-solid fa-coins mr-1 text-[9px]"></i>Extra Deposit (Credit)</span>' :
       `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-layer-group mr-1 text-[9px]"></i>Regular Share (Credit)</span>`;
 
-    const statusBadge = tx.status === 'Received' ? 
+    const isRec = tx.status === 'Received';
+    const isDue = tx.status === 'Due';
+    const isProg = tx.status === 'In Progress' || tx.status === 'Credit Inflow';
+    const statusBadge = isRec ? 
       '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Received</span>' :
+      isDue ?
+      '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800">Due</span>' :
+      isProg ?
+      '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800">In Progress</span>' :
       '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Pending</span>';
 
     // Status action button for admin
     let adminStatusToggle = statusBadge;
     if (canApprove) {
-      if (tx.status === 'Pending') {
+      if (!isRec) {
         adminStatusToggle = `
-          <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Received')" title="Click to Approve & Mark Received" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-emerald-600 hover:text-white text-amber-800 transition flex items-center gap-1 mx-auto shadow-sm">
-            <span>Pending</span>
+          <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Received')" title="Click to Approve & Mark Received" class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isDue ? 'bg-rose-100 text-rose-800 hover:bg-emerald-600 hover:text-white' : isProg ? 'bg-sky-100 text-sky-800 hover:bg-emerald-600 hover:text-white' : 'bg-amber-100 text-amber-800 hover:bg-emerald-600 hover:text-white'} transition flex items-center gap-1 mx-auto shadow-sm">
+            <span>${tx.status}</span>
             <i class="fa-solid fa-circle-check text-xs"></i>
           </button>
         `;
       } else {
         adminStatusToggle = `
-          <button onclick="togglePaymentApproval('${tx.uniqueId}', 'Pending')" title="Click to mark back as Pending" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 hover:bg-amber-100 hover:text-amber-800 text-emerald-800 transition flex items-center gap-1 mx-auto">
+          <button onclick="togglePaymentApproval('${tx.uniqueId}', 'In Progress')" title="Click to mark back as In Progress" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 hover:bg-sky-100 hover:text-sky-800 text-emerald-800 transition flex items-center gap-1 mx-auto">
             <span>Received</span>
             <i class="fa-solid fa-check text-[10px]"></i>
           </button>

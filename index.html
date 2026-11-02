@@ -310,19 +310,23 @@
             </div>
             <div class="flex items-center justify-between">
               <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Member Deposits (Credit)</p>
-              <span class="badge-3d px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">100% Credited</span>
+              <span class="badge-3d px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" id="kpi-credited-badge">100% Credited</span>
             </div>
             <div class="flex items-baseline gap-1 mt-2">
               <span class="text-3xl lg:text-4xl font-black text-brand-900 dark:text-brand-300" id="kpi-total-amount">৳0</span>
             </div>
-            <div class="card-3d-tray mt-3 grid grid-cols-2 gap-2 text-[11px]">
+            <div class="card-3d-tray mt-3 grid grid-cols-3 gap-2 text-[11px]">
               <div>
                 <span class="text-slate-400 block text-[10px] uppercase font-bold">Credited Inflows</span>
                 <strong class="text-emerald-600 dark:text-emerald-400 font-bold text-xs" id="kpi-received-amount">৳0</strong>
               </div>
               <div>
-                <span class="text-slate-400 block text-[10px] uppercase font-bold">Pending Dues</span>
-                <strong class="text-amber-600 dark:text-amber-400 font-bold text-xs" id="kpi-pending-amount">৳0</strong>
+                <span class="text-slate-400 block text-[10px] uppercase font-bold">In Progress</span>
+                <strong class="text-sky-600 dark:text-sky-400 font-bold text-xs" id="kpi-pending-amount">৳0</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[10px] uppercase font-bold">Due Amount</span>
+                <strong class="text-amber-600 dark:text-amber-400 font-bold text-xs" id="kpi-due-amount">৳0</strong>
               </div>
             </div>
           </div>
@@ -386,8 +390,9 @@
               <span class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400" id="kpi-collection-rate">100%</span>
             </div>
             <div class="card-3d-tray mt-3 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span id="kpi-received-count">137 Approved</span>
-              <span class="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1" id="kpi-pending-count"><i class="fa-solid fa-clock text-[10px]"></i> 2 Pending</span>
+              <span id="kpi-received-count">151 Received</span>
+              <span class="text-sky-600 dark:text-sky-400 font-bold flex items-center gap-1" id="kpi-pending-count"><i class="fa-solid fa-hourglass-half text-[10px]"></i> 2 In Progress</span>
+              <span class="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1" id="kpi-due-count"><i class="fa-solid fa-clock text-[10px]"></i> 2 Due</span>
             </div>
           </div>
 

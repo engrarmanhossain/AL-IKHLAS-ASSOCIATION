@@ -1709,25 +1709,20 @@ function handleLoginEmailInput() {
   const preview = document.getElementById('login-member-preview');
   const centerLogo = document.getElementById('login-center-logo');
 
-  if (!val || val.length < 2) {
+  if (!val) {
     if (preview) preview.classList.add('hidden');
     applyAssociationLogo();
     return;
   }
 
-  // Look up user in state.users by registered email, name, sheetName, or ID
+  // Exact match only: show ONLY after writing the full registered email (or full name/ID)
   const matchedUser = (state.users || []).find(u => {
     const uEmail = (u.email || '').toLowerCase().trim();
     const uName = (u.name || '').toLowerCase().trim();
     const uSheet = (u.sheetName || '').toLowerCase().trim();
     const uId = (u.id || '').toLowerCase().trim();
 
-    if (uEmail === val || uName === val || uSheet === val || uId === val) return true;
-    if (val.length >= 3) {
-      if (uEmail.startsWith(val)) return true;
-      if (uName.startsWith(val)) return true;
-    }
-    return false;
+    return uEmail === val || uName === val || uSheet === val || uId === val;
   });
 
   if (matchedUser) {
@@ -1738,28 +1733,12 @@ function handleLoginEmailInput() {
     if (preview) {
       const avatarEl = document.getElementById('login-preview-avatar');
       const nameEl = document.getElementById('login-preview-name');
-      const roleEl = document.getElementById('login-preview-role');
-      const emailEl = document.getElementById('login-preview-email');
 
       if (avatarEl) {
         avatarEl.innerHTML = renderUserAvatar(userWithAvatar, 'w-11 h-11 rounded-2xl shadow-md border-2 border-emerald-400/50', 'text-sm font-black');
       }
       if (nameEl) {
         nameEl.textContent = userWithAvatar.name;
-      }
-      if (roleEl) {
-        const r = userWithAvatar.role || 'Member';
-        roleEl.textContent = r;
-        if (r === 'President') {
-          roleEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-950 text-amber-300 border border-amber-700/60 shrink-0';
-        } else if (r === 'Accountant') {
-          roleEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-950 text-blue-300 border border-blue-700/60 shrink-0';
-        } else {
-          roleEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0';
-        }
-      }
-      if (emailEl) {
-        emailEl.textContent = userWithAvatar.email || userWithAvatar.id || '';
       }
 
       preview.classList.remove('hidden');

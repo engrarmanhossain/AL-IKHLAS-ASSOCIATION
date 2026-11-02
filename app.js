@@ -37,6 +37,11 @@ function saveAdminAssignedRole(id, email, name, role) {
   if (name) roles[name.toLowerCase().trim()] = role;
   localStorage.setItem(CONFIG.STORAGE_KEY_ROLES, JSON.stringify(roles));
   localStorage.setItem('al_ikhlas_assigned_roles', JSON.stringify(roles));
+  try {
+    if (typeof canManageUsers === 'function' && canManageUsers()) {
+      syncConfigToCloud('assignedRoles', roles);
+    }
+  } catch (e) {}
 }
 
 function removeAdminAssignedRole(id, email, name) {
@@ -46,6 +51,11 @@ function removeAdminAssignedRole(id, email, name) {
   if (name) delete roles[name.toLowerCase().trim()];
   localStorage.setItem(CONFIG.STORAGE_KEY_ROLES, JSON.stringify(roles));
   localStorage.setItem('al_ikhlas_assigned_roles', JSON.stringify(roles));
+  try {
+    if (typeof canManageUsers === 'function' && canManageUsers()) {
+      syncConfigToCloud('assignedRoles', roles);
+    }
+  } catch (e) {}
 }
 
 // 11-Year Official Financial Year Share & Extra Schedule (2025-2026 to 2035-2036)
@@ -259,7 +269,7 @@ const DEFAULT_USERS = [
     email: 'faisal@alikhlas.org',
     password: 'member2026',
     phone: '01628435701',
-    role: 'Accountant', // Financial Admin
+    role: 'Member',
     avatar: null,
     nid: '19932678901234567',
     nomineeName: 'Designated Nominee',
@@ -276,7 +286,7 @@ const DEFAULT_USERS = [
     email: 'zafrul@alikhlas.org',
     password: 'member2026',
     phone: '01846329066',
-    role: 'Secretary',
+    role: 'Member',
     avatar: null,
     nid: '19913456789012345',
     nomineeName: 'Designated Nominee',
@@ -293,7 +303,7 @@ const DEFAULT_USERS = [
     email: 'ikhtiar@alikhlas.org',
     password: 'member2026',
     phone: '01600102219',
-    role: 'Cashier',
+    role: 'Member',
     avatar: null,
     nid: '19904567890123456',
     nomineeName: 'Designated Nominee',
@@ -1431,15 +1441,12 @@ function initUsersAndAuth() {
 
         // Strictly enforce Admin-assigned role: Only Admin can change Assigned Role, never automatic
         const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
-        if (lockedRole) {
-          u.role = lockedRole;
-        } else if (def && def.role) {
-          if (!u.role || (def.role !== 'Member' && u.role === 'Member')) {
-            u.role = def.role;
-          }
-        }
         if (u.id === 'u1' || (u.email && u.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
           u.role = 'President';
+        } else if (lockedRole) {
+          u.role = lockedRole;
+        } else {
+          u.role = 'Member';
         }
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
@@ -1447,9 +1454,12 @@ function initUsersAndAuth() {
       state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
       state.users.forEach(u => {
         const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
-        if (lockedRole) u.role = lockedRole;
         if (u.id === 'u1' || (u.email && u.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
           u.role = 'President';
+        } else if (lockedRole) {
+          u.role = lockedRole;
+        } else {
+          u.role = 'Member';
         }
       });
       localStorage.setItem(CONFIG.STORAGE_KEY_USERS, JSON.stringify(state.users));
@@ -1458,9 +1468,12 @@ function initUsersAndAuth() {
     state.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
     state.users.forEach(u => {
       const lockedRole = (u.id && adminAssignedRoles[u.id]) || (u.email && adminAssignedRoles[u.email.toLowerCase()]) || (u.name && adminAssignedRoles[u.name.toLowerCase().trim()]);
-      if (lockedRole) u.role = lockedRole;
       if (u.id === 'u1' || (u.email && u.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
         u.role = 'President';
+      } else if (lockedRole) {
+        u.role = lockedRole;
+      } else {
+        u.role = 'Member';
       }
     });
     // Apply cached net shares if present
@@ -2406,6 +2419,7 @@ function handleMemberProfileSubmit(e) {
   // Strictly protect assigned roles: Only Admin can broadcast association users or roles to cloud
   if (canManageUsers()) {
     syncConfigToCloud('users', state.users);
+    syncConfigToCloud('assignedRoles', getAdminAssignedRoles());
   }
   if (avatarUpdated && tempProfileAvatar && state.currentUser.id) {
     syncConfigToCloud('avatar_' + state.currentUser.id, tempProfileAvatar);
@@ -2754,6 +2768,7 @@ function handleUserSubmit(e) {
   // Strictly protect assigned roles: Only Admin can broadcast association users or roles to cloud
   if (canManageUsers()) {
     syncConfigToCloud('users', state.users);
+    syncConfigToCloud('assignedRoles', getAdminAssignedRoles());
   }
   if (avatarUpdatedId && avatarUpdatedVal) {
     syncConfigToCloud('avatar_' + avatarUpdatedId, avatarUpdatedVal);
@@ -3346,6 +3361,14 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
     hasChanges = true;
   }
 
+  // 2.5 Admin Assigned Roles (Centrally synced so all devices share the exact locked roles)
+  if (cloudConfig.assignedRoles && typeof cloudConfig.assignedRoles === 'object') {
+    const localRoles = getAdminAssignedRoles();
+    const mergedRoles = Object.assign({}, cloudConfig.assignedRoles, localRoles);
+    localStorage.setItem(CONFIG.STORAGE_KEY_ROLES, JSON.stringify(mergedRoles));
+    localStorage.setItem('al_ikhlas_assigned_roles', JSON.stringify(mergedRoles));
+  }
+
   // 3. Share Schedule (Live Google Sheet is primary; static cloudConfig fallback)
   if (!state.shareScheduleFromSheet && cloudConfig.shareSchedule && Array.isArray(cloudConfig.shareSchedule) && cloudConfig.shareSchedule.length > 0) {
     state.shareSchedule = cloudConfig.shareSchedule;
@@ -3428,16 +3451,12 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
         // Strictly lock and protect Admin-assigned role: Only Admin can change Assigned Role, never automatic
         const adminAssignedRoles = getAdminAssignedRoles();
         const lockedRole = (target.id && adminAssignedRoles[target.id]) || (target.email && adminAssignedRoles[target.email.toLowerCase()]) || (target.name && adminAssignedRoles[target.name.toLowerCase().trim()]);
-        if (lockedRole) {
-          target.role = lockedRole;
-        } else {
-          const def = DEFAULT_USERS.find(d => d.id === target.id || (d.email && target.email && d.email.toLowerCase() === target.email.toLowerCase()));
-          if (def && def.role && (!target.role || (def.role !== 'Member' && target.role === 'Member'))) {
-            target.role = def.role;
-          }
-        }
         if (target.id === 'u1' || (target.email && target.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
           target.role = 'President';
+        } else if (lockedRole) {
+          target.role = lockedRole;
+        } else {
+          target.role = 'Member';
         }
 
         // Always guarantee Net Share from live Google Sheet takes precedence for Subscribed shares
@@ -3476,13 +3495,15 @@ function applyCloudConfig(cloudConfig, isSilent = false) {
         // Strictly safeguard currentUser role from being altered automatically
         const adminAssignedRoles = getAdminAssignedRoles();
         const lockedMyRole = (state.currentUser.id && adminAssignedRoles[state.currentUser.id]) || (state.currentUser.email && adminAssignedRoles[state.currentUser.email.toLowerCase()]) || currentRole;
-        if (lockedMyRole) {
-          state.currentUser.role = lockedMyRole;
-          me.role = lockedMyRole;
-        }
         if (state.currentUser.id === 'u1' || (state.currentUser.email && state.currentUser.email.toLowerCase() === 'armanhossain.eee.info@gmail.com')) {
           state.currentUser.role = 'President';
           me.role = 'President';
+        } else if (lockedMyRole) {
+          state.currentUser.role = lockedMyRole;
+          me.role = lockedMyRole;
+        } else {
+          state.currentUser.role = 'Member';
+          me.role = 'Member';
         }
 
         // Always guarantee Net Share from live Google Sheet takes precedence for currentUser
@@ -5562,11 +5583,7 @@ function renderMembersGrid() {
       ((u.sheetName || '').toLowerCase().trim() === mNameClean) ||
       ((u.name || '').toLowerCase().trim() === mNameClean)
     );
-    const defUser = DEFAULT_USERS.find(d => 
-      d.name.toLowerCase().trim() === mNameClean || 
-      (d.sheetName && d.sheetName.toLowerCase().trim() === mNameClean)
-    );
-    const roleBadge = (assignedUser && assignedUser.role) ? assignedUser.role : (defUser ? defUser.role : 'Member');
+    const roleBadge = (assignedUser && assignedUser.role) ? assignedUser.role : (mNameClean === 'arman hossain' ? 'President' : 'Member');
     const userNid = assignedUser ? assignedUser.nid : '';
     const userNominee = assignedUser ? assignedUser.nomineeName : '';
     const userNomineeRel = assignedUser ? assignedUser.nomineeRelation : '';
@@ -5693,7 +5710,7 @@ function openMemberStatement(memberName) {
   // Render Member Role Badge
   const roleBadgeEl = document.getElementById('modal-member-role-badge');
   if (roleBadgeEl) {
-    const role = (assignedUser && assignedUser.role) ? assignedUser.role : 'Member';
+    const role = (assignedUser && assignedUser.role) ? assignedUser.role : (memberNameClean === 'arman hossain' ? 'President' : 'Member');
     roleBadgeEl.textContent = role;
     if (role === 'President') {
       roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800';

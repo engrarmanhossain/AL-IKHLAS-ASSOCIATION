@@ -103,11 +103,28 @@
 
         <!-- Opening Login Form -->
         <form id="opening-login-form" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+          <!-- Live Profile Picture & Member Name Preview (Shown when registered email / name is entered) -->
+          <div id="login-member-preview" class="hidden p-3 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-800/90 to-slate-800 border border-emerald-500/50 shadow-lg flex items-center gap-3 transition-all">
+            <div id="login-preview-avatar" class="shrink-0 flex items-center justify-center">
+              <!-- Dynamically populated avatar -->
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span id="login-preview-name" class="font-bold text-sm text-white truncate leading-tight">Member Name</span>
+                <i class="fa-solid fa-circle-check text-emerald-400 text-xs shrink-0" title="Registered Member"></i>
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span id="login-preview-role" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0">Member</span>
+                <span id="login-preview-email" class="text-[10px] text-slate-400 truncate font-mono"></span>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Email or Member Name</label>
             <div class="relative">
               <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              <input type="text" id="login-email" required placeholder="Enter your email or ID" autocomplete="username" class="w-full bg-slate-800/90 text-xs rounded-xl pl-9 pr-3 py-3 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <input type="text" id="login-email" required placeholder="Enter your email or ID" autocomplete="username" oninput="handleLoginEmailInput()" onchange="handleLoginEmailInput()" class="w-full bg-slate-800/90 text-xs rounded-xl pl-9 pr-3 py-3 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
             </div>
           </div>
 

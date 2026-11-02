@@ -591,6 +591,7 @@ function showView(viewName) {
     document.getElementById('login-error')?.classList.add('hidden');
     const pwdInput = document.getElementById('login-password');
     if (pwdInput) pwdInput.value = '';
+    handleLoginEmailInput();
   } else {
     loginView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
@@ -1701,9 +1702,82 @@ function closeLoginModal() {
   if (state.currentUser) showView('dashboard');
 }
 
+function handleLoginEmailInput() {
+  const emailInput = document.getElementById('login-email');
+  if (!emailInput) return;
+  const val = emailInput.value.trim().toLowerCase();
+  const preview = document.getElementById('login-member-preview');
+  const centerLogo = document.getElementById('login-center-logo');
+
+  if (!val || val.length < 2) {
+    if (preview) preview.classList.add('hidden');
+    applyAssociationLogo();
+    return;
+  }
+
+  // Look up user in state.users by registered email, name, sheetName, or ID
+  const matchedUser = (state.users || []).find(u => {
+    const uEmail = (u.email || '').toLowerCase().trim();
+    const uName = (u.name || '').toLowerCase().trim();
+    const uSheet = (u.sheetName || '').toLowerCase().trim();
+    const uId = (u.id || '').toLowerCase().trim();
+
+    if (uEmail === val || uName === val || uSheet === val || uId === val) return true;
+    if (val.length >= 3) {
+      if (uEmail.startsWith(val)) return true;
+      if (uName.startsWith(val)) return true;
+    }
+    return false;
+  });
+
+  if (matchedUser) {
+    // Check for stored avatar if user.avatar is missing
+    const storedAvatar = matchedUser.id ? localStorage.getItem('al_ikhlas_avatar_' + matchedUser.id) : null;
+    const userWithAvatar = storedAvatar && !matchedUser.avatar ? Object.assign({}, matchedUser, { avatar: storedAvatar }) : matchedUser;
+
+    if (preview) {
+      const avatarEl = document.getElementById('login-preview-avatar');
+      const nameEl = document.getElementById('login-preview-name');
+      const roleEl = document.getElementById('login-preview-role');
+      const emailEl = document.getElementById('login-preview-email');
+
+      if (avatarEl) {
+        avatarEl.innerHTML = renderUserAvatar(userWithAvatar, 'w-11 h-11 rounded-2xl shadow-md border-2 border-emerald-400/50', 'text-sm font-black');
+      }
+      if (nameEl) {
+        nameEl.textContent = userWithAvatar.name;
+      }
+      if (roleEl) {
+        const r = userWithAvatar.role || 'Member';
+        roleEl.textContent = r;
+        if (r === 'President') {
+          roleEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-950 text-amber-300 border border-amber-700/60 shrink-0';
+        } else if (r === 'Accountant') {
+          roleEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-950 text-blue-300 border border-blue-700/60 shrink-0';
+        } else {
+          roleEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0';
+        }
+      }
+      if (emailEl) {
+        emailEl.textContent = userWithAvatar.email || userWithAvatar.id || '';
+      }
+
+      preview.classList.remove('hidden');
+    }
+
+    if (centerLogo) {
+      centerLogo.innerHTML = renderUserAvatar(userWithAvatar, 'w-full h-full rounded-3xl object-cover', 'text-2xl font-black');
+    }
+  } else {
+    if (preview) preview.classList.add('hidden');
+    applyAssociationLogo();
+  }
+}
+
 function quickFillAdminLogin() {
   document.getElementById('login-email').value = 'armanhossain.eee.info@gmail.com';
   document.getElementById('login-password').value = 'arman2026**';
+  handleLoginEmailInput();
   handleLoginSubmit();
 }
 
@@ -1751,6 +1825,9 @@ function handleLogout() {
   const passInput = document.getElementById('login-password');
   if (emailInput) emailInput.value = '';
   if (passInput) passInput.value = '';
+  const preview = document.getElementById('login-member-preview');
+  if (preview) preview.classList.add('hidden');
+  applyAssociationLogo();
   const errorEl = document.getElementById('login-error');
   if (errorEl) errorEl.classList.add('hidden');
   showView('login');
@@ -5876,6 +5953,13 @@ function setupEventListeners() {
     renderMembersGrid();
   });
 
+  const loginEmailInput = document.getElementById('login-email');
+  if (loginEmailInput) {
+    loginEmailInput.addEventListener('input', handleLoginEmailInput);
+    loginEmailInput.addEventListener('change', handleLoginEmailInput);
+    loginEmailInput.addEventListener('paste', () => setTimeout(handleLoginEmailInput, 50));
+  }
+
   document.getElementById('btn-export-csv')?.addEventListener('click', exportLedgerCSV);
 }
 
@@ -6050,3 +6134,4 @@ window.exportGlobalConfigFile = exportGlobalConfigFile;
 window.importGlobalConfigFile = importGlobalConfigFile;
 window.syncConfigToCloud = syncConfigToCloud;
 window.applyCloudConfig = applyCloudConfig;
+window.handleLoginEmailInput = handleLoginEmailInput;

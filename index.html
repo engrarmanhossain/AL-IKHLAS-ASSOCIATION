@@ -1114,12 +1114,17 @@
         </div>
 
         <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Deposit History (Credited Chronological)</h4>
-            <span class="text-xs text-slate-400">Regular Shares &amp; Extra Deposits (All Credited)</span>
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Deposit History (Credited Chronological)</h4>
+              <span class="text-xs text-slate-400">Regular Shares &amp; Extra Deposits (All Credited)</span>
+            </div>
+            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold sm:hidden flex items-center gap-1 shrink-0 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60">
+              <i class="fa-solid fa-arrows-left-right text-[9px]"></i> Scroll table
+            </span>
           </div>
-          <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-            <table class="w-full text-left text-xs whitespace-nowrap">
+          <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm">
+            <table class="w-full text-left text-xs whitespace-nowrap min-w-[600px]">
               <thead class="bg-slate-100 dark:bg-slate-800 sticky top-0 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
                 <tr>
                   <th class="py-2.5 px-3">Date</th>

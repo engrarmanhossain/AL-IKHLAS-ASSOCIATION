@@ -129,7 +129,8 @@ body {
     max-height: none !important;
   }
 
-  .modal-statement-scroll-body {
+  .modal-statement-scroll-body,
+  .modal-statement-scroll-body div {
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
